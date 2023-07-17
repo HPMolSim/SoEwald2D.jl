@@ -1,4 +1,4 @@
-export soerfc
+export soerfc, SoePara
 
 struct SoePara{T} 
     sw::Vector{Tuple{T, T}}

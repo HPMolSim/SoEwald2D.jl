@@ -1,4 +1,4 @@
-export SoEwald2DPara
+export SoEwald2DPara, AdPara, IterPara, revise_adpara!, update_iterpara!
 
 # this structure contain all information needed for the calculation
 struct SoEwald2DPara{T, TI}
@@ -29,44 +29,6 @@ function SoEwald2DPara(L::NTuple{3, T}, s::T, α::T, n_atoms::TI) where{T, TI}
     return SoEwald2DPara{T, TI}(L, r_c, k_c, α, n_atoms, k_set)
 end
 
-mutable struct AdPara{T}
-    Fx::Vector{T}
-    Fy::Vector{T}
-    Fz::Vector{T}
-    U::Vector{T}
-    dU::Vector{T}
-end
-
-function AdPara(n_atoms::TI) where{TI<:Integer} 
-    T = Float64
-    Fx = zeros(T, n_atoms)
-    Fy = zeros(T, n_atoms)
-    Fz = zeros(T, n_atoms)
-    U = [zero(T)]
-    dU = [one(T)]
-    return AdPara{T}(Fx, Fy, Fz, U, dU)
-end
-
-function AdPara(T::DataType, n_atoms::TI) where{TI<:Integer} 
-    Fx = zeros(T, n_atoms)
-    Fy = zeros(T, n_atoms)
-    Fz = zeros(T, n_atoms)
-    U = [zero(T)]
-    dU = [one(T)]
-    return AdPara{T}(Fx, Fy, Fz, U, dU)
-end
-
-function revise_adpara!(adpara::AdPara{T}, n_atoms::TI) where{T<:Number, TI<:Integer}
-    for i in 1:n_atoms
-        adpara.Fx[i] = zero(T)
-        adpara.Fy[i] = zero(T)
-        adpara.Fz[i] = zero(T)
-    end
-    adpara.U[1] = zero(T)
-    adpara.dU[1] = one(T)
-    return nothing
-end
-
 mutable struct IterPara
     A::Vector{ComplexF64}
     B::Vector{ComplexF64}
@@ -89,6 +51,7 @@ function IterPara(n_atoms::Int64)
     return IterPara(A, B, C, D, z_list, m_list)
 end
 
+# this function is possibly not needed 
 function revise_iterpara!(iterpara::IterPara)
     n_atoms = length(iterpara.A)
     for i = 1:n_atoms
@@ -99,5 +62,48 @@ function revise_iterpara!(iterpara::IterPara)
         iterpara.z_list[i] = zero(Int64)
         iterpara.m_list[i] = zero(Int64)
     end
+    return nothing
+end
+
+
+mutable struct AdPara{T}
+    Fx::Vector{T}
+    Fy::Vector{T}
+    Fz::Vector{T}
+    U::Vector{T}
+    dU::Vector{T}
+    iterpara_t::IterPara
+end
+
+function AdPara(n_atoms::TI) where{TI<:Integer} 
+    T = Float64
+    Fx = zeros(T, n_atoms)
+    Fy = zeros(T, n_atoms)
+    Fz = zeros(T, n_atoms)
+    U = [zero(T)]
+    dU = [one(T)]
+    iterpara_t = IterPara(n_atoms)
+    return AdPara{T}(Fx, Fy, Fz, U, dU, iterpara_t)
+end
+
+function AdPara(T::DataType, n_atoms::TI) where{TI<:Integer} 
+    Fx = zeros(T, n_atoms)
+    Fy = zeros(T, n_atoms)
+    Fz = zeros(T, n_atoms)
+    U = [zero(T)]
+    dU = [one(T)]
+    iterpara_t = IterPara(n_atoms)
+    return AdPara{T}(Fx, Fy, Fz, U, dU, iterpara_t)
+end
+
+function revise_adpara!(adpara::AdPara{T}, n_atoms::TI) where{T<:Number, TI<:Integer}
+    for i in 1:n_atoms
+        adpara.Fx[i] = zero(T)
+        adpara.Fy[i] = zero(T)
+        adpara.Fz[i] = zero(T)
+    end
+    adpara.U[1] = zero(T)
+    adpara.dU[1] = one(T)
+    adpara.iterpara_t = IterPara(n_atoms)
     return nothing
 end
