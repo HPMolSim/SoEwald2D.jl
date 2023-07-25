@@ -18,5 +18,6 @@
     energy_sum!(q, x, y, z, para, soepara, iterpara, U_soe)
     direct_sum!(q, x, y, z, para, U_dir)
 
-    @test abs(U_soe[1] - U_dir[1]) < 1e-6
+    @show U_soe[1], U_dir[1]
+    @test U_soe[1] ≈ U_dir[1]
 end

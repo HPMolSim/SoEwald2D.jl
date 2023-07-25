@@ -8,15 +8,13 @@ function energy_sum_k_S1(K::Tuple{T, T, T}, q::Array{T}, x::Array{T}, y::Array{T
 
     #compute the SOE part
     for (s, w) in soepara.sw
-        #update A, C and D
         sum_k_soe = zero(ComplexF64)
         update_iterpara_A!(iterpara, q, x, y, z, para, s, K)
         for i in 1:para.n_atoms
             j = iterpara.z_list[i]
-            sum_k_soe += q[j] * exp(1.0im * (k_x * x[j] + k_y * y[j]) + k * z[j] - s*para.α*z[j]) * iterpara.A[i]
+            sum_k_soe += q[j] * exp(1.0im * (k_x * x[j] + k_y * y[j]) - s*para.α*z[j]) * iterpara.A[i]
         end
-
-        sum_k += w * sum_k_soe * exp(- s * k / (2 * para.α))
+        sum_k += sum_k_soe * s * w * exp(-k^2/(4 * para.α^2)) / (s * para.α + k) * para.α
     end
 
     return 2/k * (sum_k)
@@ -75,66 +73,53 @@ function big_iterpara_A(q::Array{T}, x::Array{T}, y::Array{T}, z::Array{T}, para
     return A
 end
 
-function big_sum_A(q::Array{T}, x::Array{T}, y::Array{T}, z::Array{T}, para::SoEwald2DPara{T, Int64}, soepara::SoePara{ComplexF64}, K::Tuple{T, T, T}) where{T<:Number}
+function sum_A(q::Array{T}, x::Array{T}, y::Array{T}, z::Array{T}, para::SoEwald2DPara{T, Int64}, soepara::SoePara{ComplexF64}, K::Tuple{T, T, T}) where{T<:Number}
     k_x, k_y, k = K
 
-    result_1 = big(zero(ComplexF64))
-    result_2 = big(zero(ComplexF64))
-    result_3 = big(zero(ComplexF64))
-    result_4 = big(zero(ComplexF64))
+    result_1 = zero(ComplexF64)
+    result_2 = zero(ComplexF64)
+    result_3 = zero(ComplexF64)
 
-    n = k * para.L[3]
     z_list = sortperm(z)
     for (s, w) in soepara.sw
         for i in 1:para.n_atoms
-            A = big(zero(ComplexF64))
+            A = zero(ComplexF64)
             for l in 1:i-1
                 j = z_list[l]
-                A += q[j] * exp(big(- 1.0im * (k_x * x[j] + k_y * y[j]) - k * z[j] + s * para.α * z[j]))
+                A += q[j] * exp(- 1.0im * (k_x * x[j] + k_y * y[j]) + s * para.α * z[j])
             end
             j = z_list[i]
-            result_1 += q[j] * exp(big(log(w) + 1.0im * (k_x * x[j] + k_y * y[j]) + k * z[j] - s * para.α * z[j] - s * k / (2 * para.α))) * A
-
-            for j in 1:i - 1
-                result_2 += q[i] * q[j] * exp(big(log(w) + 1.0im * (k_x * (x[i] - x[j]) + k_y * (y[i] - y[j])) + k * abs(z[i] - z[j]) - s * para.α * abs(z[i] - z[j]) - s * k / (2 * para.α)))
-            end
+            result_1 += q[j] * exp(1.0im * (k_x * x[j] + k_y * y[j]) - s * para.α * z[j]) * A * s * w * exp(-k^2/(4 * para.α^2)) / (s * para.α + k) * para.α
         end
     end
 
-    e_1 = []
-    e_2 = []
-    t = []
+    # exact result
     for i in 1:para.n_atoms
         for j in 1:i - 1
-            t1 = q[i] * q[j] * exp(big( 1.0im * (k_x * (x[i] - x[j]) + k_y * (y[i] - y[j])) + k * abs(z[i] - z[j])))
-            result_4 += t1 * erfc(big(k/(2*para.α) + para.α * abs(z[i] - z[j])))
-            temp = zero(ComplexF64)
-
-            s, w = soepara.sw[1]
-            temp = (w)^(1/n) * exp(big(- s * para.α * abs(z[i] - z[j]) - s * k / (2 * para.α)) / n)
-            for l in 2:size(soepara.sw)[1]
-                s, w = s = soepara.sw[l]
-                a = exp(big(- s * para.α * abs(z[i] - z[j]) - s * k / (2 * para.α)) / n)
-                if abs(a) > abs(temp)
-                    temp = a * (w + (temp / a)^n)^(1/n)
-                else
-                    temp = temp * (w * (a / temp)^n + 1)^(1/n)
-                end
-            end
-
-            t2 =  exp(big( 1.0im * (k_x * (x[i] - x[j]) + k_y * (y[i] - y[j])) + k * abs(z[i] - z[j])) / n)
-            result_3 += q[i] * q[j] * (t2 * temp)^n
-            if abs(t1 * temp - t1 * erfc(big(k/(2*para.α) + para.α * abs(z[i] - z[j])))) > 1e-5
-                @show t1, temp - erfc(big(k/(2*para.α) + para.α * abs(z[i] - z[j])))
-            end
-
-            a = temp - erfc(big(k/(2*para.α) + para.α * abs(z[i] - z[j])))
-            b = result_3 - result_4
-            push!(e_1, a)
-            push!(e_2, b)
-            push!(t, t1 * temp - t1 * erfc(big(k/(2*para.α) + para.α * abs(z[i] - z[j]))) )
+            result_3 += q[i] * q[j] * exp(1.0im * (k_x * (x[i] - x[j]) + k_y * (y[i] - y[j])) + k * abs(z[i] - z[j])) * erfc((k / (2 * para.α) + para.α * abs(z[i] - z[j])))
         end
     end
 
-    return 2/k * result_1, 2/k * result_2, 2/k * result_3, 2/k * result_4, e_1, e_2, t
+
+    return 2/k * result_1, 2/k * result_3
+end
+
+begin
+    n_atoms = 20
+    L = (100.0, 100.0, 100.0)
+    q = 2 .* rand(n_atoms) .- 1.0
+    q = q .- sum(q) / n_atoms
+    x = L[1] .* rand(n_atoms)
+    y = L[2] .* rand(n_atoms)
+    z = L[3] .* rand(n_atoms)
+
+    para = SoEwald2DPara(L, rand(), rand(), n_atoms)
+
+    iterpara = IterPara(n_atoms)
+    soepara = SoePara()
+
+    K = (0.3, 0.4, 0.5)
+    soe_A = energy_sum_k_S1(K, q, x, y, z, para, soepara, iterpara)
+    dir_soe_A, dir_A = sum_A(q, x, y, z, para, soepara, K)
+    @show soe_A, dir_soe_A, dir_A
 end

@@ -35,7 +35,7 @@ function update_iterpara_A!(iterpara::IterPara, q::Array{T}, x::Array{T}, y::Arr
     for i in 2:para.n_atoms
         # qj exp (−ik · ρj − k zj + sl α zj)
         j = iterpara.z_list[i - 1]
-        iterpara.A[i] = iterpara.A[i - 1] + q[j] * exp(- 1.0im * (k_x * x[j] + k_y * y[j]) - k * z[j] + s * para.α * z[j])
+        iterpara.A[i] = iterpara.A[i - 1] + q[j] * exp(- 1.0im * (k_x * x[j] + k_y * y[j]) + s * para.α * z[j])
     end
 
     return nothing
@@ -119,16 +119,17 @@ function energy_sum_k(K::Tuple{T, T, T}, q::Array{T}, x::Array{T}, y::Array{T}, 
 
         sum_k_soe_1 = zero(ComplexF64)
         sum_k_soe_2 = zero(ComplexF64)
+        sum_k_soe_3 = zero(ComplexF64)
         
         for i in 1:para.n_atoms
             j = iterpara.z_list[i]
-            sum_k_soe_1 += q[j] * (
-                exp(1.0im * (k_x * x[j] + k_y * y[j]) + k * z[j] - s*para.α*z[j]) * iterpara.A[i] +
-                exp(1.0im * (k_x * x[j] + k_y * y[j]) - k * z[j] + s*para.α*z[j]) * iterpara.D[i])
-            sum_k_soe_2 += - q[j] * exp(1.0im * (k_x * x[j] + k_y * y[j]) - k * z[j] - s*para.α*z[j]) * iterpara.C[i]
+            sum_k_soe_1 += q[j] * exp(1.0im * (k_x * x[j] + k_y * y[j]) - s*para.α*z[j]) * iterpara.A[i]
+            sum_k_soe_2 += q[j] * exp(1.0im * (k_x * x[j] + k_y * y[j]) - k * z[j] + s*para.α*z[j]) * iterpara.D[i]
+            sum_k_soe_3 += - q[j] * exp(1.0im * (k_x * x[j] + k_y * y[j]) - k * z[j] - s*para.α*z[j]) * iterpara.C[i]
         end
 
-        sum_k += w * (exp(- s * k / (2 * para.α)) * sum_k_soe_1 + exp(s * k / (2 * para.α)) * sum_k_soe_2)
+        sum_k += s * w * exp(-k^2/(4 * para.α^2)) / (s * para.α + k) * para.α * sum_k_soe_1
+        sum_k += w * (exp(- s * k / (2 * para.α)) * sum_k_soe_2 + exp(s * k / (2 * para.α)) * sum_k_soe_3)
     end
     return 2/k * real(sum_k)
 end

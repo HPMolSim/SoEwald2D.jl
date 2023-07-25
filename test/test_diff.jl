@@ -24,13 +24,13 @@
     ad_direct_sum!(q, x, y, z, para, adpara_dir)
     ad_energy_sum!(q, x, y, z, para, soepara, iterpara, adpara_soe)
 
-    @test abs(adpara_dir.U[1] - adpara_soe.U[1]) < 1e-6
-    @test sum(abs.(adpara_dir.Fx .- adpara_soe.Fx))/n_atoms < 1e-6
-    @test sum(abs.(adpara_dir.Fy .- adpara_soe.Fy))/n_atoms < 1e-6
-    @test sum(abs.(adpara_dir.Fz .- adpara_soe.Fz))/n_atoms < 1e-6
+    @test abs(adpara_dir.U[1] - adpara_soe.U[1]) < 1e-10
+    @test sum(abs.(adpara_dir.Fx .- adpara_soe.Fx))/n_atoms < 1e-10
+    @test sum(abs.(adpara_dir.Fy .- adpara_soe.Fy))/n_atoms < 1e-10
+    @test sum(abs.(adpara_dir.Fz .- adpara_soe.Fz))/n_atoms < 1e-10
 
-    @test abs(adpara_dir.U[1] - U[1]) < 1e-6
-    @test sum(abs.(adpara_dir.Fx ./ 2 .- F_x))/n_atoms < 1e-6
-    @test sum(abs.(adpara_dir.Fy ./ 2 .- F_y))/n_atoms < 1e-6
-    @test sum(abs.(adpara_dir.Fz ./ 2 .- F_z))/n_atoms < 1e-6
+    @test abs(adpara_dir.U[1] - U[1]) < 1e-10
+    @test sum(abs.(adpara_dir.Fx ./ 2 .- F_x))/n_atoms < 1e-10
+    @test sum(abs.(adpara_dir.Fy ./ 2 .- F_y))/n_atoms < 1e-10
+    @test sum(abs.(adpara_dir.Fz ./ 2 .- F_z))/n_atoms < 1e-10
 end
