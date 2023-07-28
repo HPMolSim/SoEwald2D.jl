@@ -7,7 +7,7 @@
     y = L[2] .* rand(n_atoms)
     z = L[3] .* rand(n_atoms)
 
-    para = SoEwald2DPara(L, 5.0, rand(), n_atoms)
+    para = SoEwald2DPara(L, 5.0, 1.1, n_atoms)
 
     iterpara = IterPara(n_atoms)
     soepara = SoePara()

@@ -14,7 +14,7 @@
     F_y = zeros(n_atoms)
     F_z = zeros(n_atoms)
 
-    para = SoEwald2DPara((10.0, 10.0, 10.0), 1.0, rand(), n_atoms);
+    para = SoEwald2DPara((10.0, 10.0, 10.0), 5.0, 1.1, n_atoms);
     soepara = SoePara()
     iterpara = IterPara(n_atoms)
     adpara_dir = AdPara(Float64, n_atoms)
@@ -46,7 +46,7 @@ end
     F_y = zeros(n_atoms)
     F_z = zeros(n_atoms)
 
-    para = SoEwald2DPara((10.0, 10.0, 10.0), 1.0, rand(), n_atoms);
+    para = SoEwald2DPara((10.0, 10.0, 10.0), 5.0, 1.1, n_atoms);
     soepara = SoePara()
     iterpara = IterPara(n_atoms)
     adpara_dir = AdPara(Float64, n_atoms)
