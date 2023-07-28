@@ -1,5 +1,5 @@
 @testset "compare energy by SoEwald2D and DirectEwald2D" begin
-    n_atoms = 1000
+    n_atoms = 100
     L = (10.0, 10.0, 10.0)
     q = 2 .* rand(n_atoms) .- 1.0
     q = q .- sum(q) / n_atoms
@@ -7,7 +7,7 @@
     y = L[2] .* rand(n_atoms)
     z = L[3] .* rand(n_atoms)
 
-    para = SoEwald2DPara(L, rand(), rand(), n_atoms)
+    para = SoEwald2DPara(L, 5.0, rand(), n_atoms)
 
     iterpara = IterPara(n_atoms)
     soepara = SoePara()

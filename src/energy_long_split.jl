@@ -1,3 +1,5 @@
+export energy_sum_k_S1, energy_sum_k_S2, sum_A
+
 function energy_sum_k_S1(K::Tuple{T, T, T}, q::Array{T}, x::Array{T}, y::Array{T}, z::Array{T}, para::SoEwald2DPara{T, Int64}, soepara::SoePara{ComplexF64}, iterpara::IterPara) where{T<:Number}
     k_x, k_y, k = K
     α = para.α
@@ -102,24 +104,4 @@ function sum_A(q::Array{T}, x::Array{T}, y::Array{T}, z::Array{T}, para::SoEwald
 
 
     return 2/k * result_1, 2/k * result_3
-end
-
-begin
-    n_atoms = 20
-    L = (100.0, 100.0, 100.0)
-    q = 2 .* rand(n_atoms) .- 1.0
-    q = q .- sum(q) / n_atoms
-    x = L[1] .* rand(n_atoms)
-    y = L[2] .* rand(n_atoms)
-    z = L[3] .* rand(n_atoms)
-
-    para = SoEwald2DPara(L, rand(), rand(), n_atoms)
-
-    iterpara = IterPara(n_atoms)
-    soepara = SoePara()
-
-    K = (0.3, 0.4, 0.5)
-    soe_A = energy_sum_k_S1(K, q, x, y, z, para, soepara, iterpara)
-    dir_soe_A, dir_A = sum_A(q, x, y, z, para, soepara, K)
-    @show soe_A, dir_soe_A, dir_A
 end

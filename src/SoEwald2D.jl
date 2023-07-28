@@ -5,6 +5,7 @@ using SpecialFunctions, LinearAlgebra, Plots, Enzyme, GaussQuadrature, Delimited
 include("types.jl")
 include("soerfc.jl")
 include("energy_long.jl")
+include("energy_long_split.jl")
 include("force_long.jl")
 include("direct_sum.jl")
 
