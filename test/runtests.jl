@@ -1,10 +1,8 @@
 using SoEwald2D
-using Test, SpecialFunctions
+using Test, SpecialFunctions, ExTinyMD
 
 @testset "SoEwald2D.jl" begin
-    # Write your tests here.
-    # include("test_sort.jl")
-    include("test_diff.jl")
-    include("test_energy.jl")
-    # include("test_soe.jl")
+    include("soerfc.jl")
+    include("sorting.jl")
+    include("energy.jl")
 end

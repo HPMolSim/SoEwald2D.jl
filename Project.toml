@@ -5,6 +5,7 @@ version = "1.0.0-DEV"
 
 [deps]
 Enzyme = "7da242da-08ed-463a-9acd-ee780be4f1d9"
+ExTinyMD = "fec76197-d59f-46dd-a0ed-76a83c21f7aa"
 GaussQuadrature = "d54b0c1a-921d-58e0-8e36-89d8069c0969"
 LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"

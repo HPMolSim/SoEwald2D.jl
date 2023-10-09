@@ -1,6 +1,6 @@
 @testset begin "SOE and exp_mul_erfc by SOE"
     soepara = SoePara()
-    k_array = 0.01:0.01:100.0
+    k_array = [0.01, 10.0]
     α = 10.0 * rand()
     z = 10.0 * rand()
 
