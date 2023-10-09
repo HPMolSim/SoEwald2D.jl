@@ -135,10 +135,11 @@ begin
         error = abs(sum_dir - sum_soe)
         push!(Error_k, error)
     end
-    plot(k_array, log10.(Error_k_A))
-    plot!(k_array, log10.(Error_k_B))
-    plot!(k_array, log10.(Error_k_C))
-    plot!(k_array, log10.(Error_k_D))
+    plot(10.0 .* k_array, log10.(Error_k_A), label = "error of sum A")
+    plot!(10.0 .* k_array, log10.(Error_k_B), label = "error of sum B")
+    plot!(10.0 .* k_array, log10.(Error_k_C), label = "error of sum C")
+    plot!(10.0 .* k_array, log10.(Error_k_D), label = "error of sum D")
+    plot!(xlabel=L"$k L_z$", ylabel = L"$\log{(error)}$")
     # plot!(k_array, log10.(Error_k))
 end
 
@@ -180,4 +181,31 @@ begin
     plot(k_array, log10.(Error_k_A))
     plot!(k_array, log10.(Error_k_B))
     plot!(k_array, log10.(Error_k_C))
+end
+
+#benchmark time
+begin
+    N_atoms = 100:100:10000
+    time_cost = Vector{Float64}()
+    for n_atoms in N_atoms
+        q = 2 .* rand(n_atoms) .- 1.0
+        q = q .- sum(q) / n_atoms
+
+        x = 10.0 * rand(n_atoms)
+        y = 10.0 * rand(n_atoms)
+        z = 10.0 * rand(n_atoms)
+
+        para = SoEwald2DPara((10.0, 10.0, 10.0), 1.0, 1.0, n_atoms);
+        soepara = SoePara()
+        iterpara = IterPara(n_atoms)
+        adpara_dir = AdPara(Float64, n_atoms)
+        adpara_soe = AdPara(Float64, n_atoms)
+        K = (0.3, 0.4, 0.5)
+
+        update_iterpara_z!(iterpara, z)
+        # push!(time_cost, @belapsed energy_sum_k($K, $q, $x, $y, $z, $para, $soepara, $iterpara))
+        push!(time_cost, @elapsed (for i in 1:10 energy_sum_k(K, q, x, y, z, para, soepara, iterpara) end))
+    end
+    plot(log10.(N_atoms), log10.(time_cost ./ 10), label = "time cost")
+    plot!(xlabel = L"$\log(N)$", ylabel = L"$\log(T)$")
 end

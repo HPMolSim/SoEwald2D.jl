@@ -1,6 +1,6 @@
 module SoEwald2D
 
-using SpecialFunctions, LinearAlgebra, Plots, Enzyme, GaussQuadrature, DelimitedFiles
+using SpecialFunctions, LinearAlgebra, Enzyme, GaussQuadrature
 
 include("types.jl")
 include("soerfc.jl")
