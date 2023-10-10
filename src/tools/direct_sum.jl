@@ -19,7 +19,7 @@ function direct_sum(interaction::SoEwald2DLongInteraction{T}, sys::MDSys{T}, inf
 
     energy *= π / (2 * interaction.L[1] * interaction.L[2])
     energy += U_k0
-    return energy
+    return energy / 4π
 end
 
 function direct_sum_k(K::Tuple{T, T, T}, q::Array{T}, x::Array{T}, y::Array{T}, z::Array{T}, para::SoEwald2DLongInteraction{T}) where{T<:Number}
@@ -69,7 +69,7 @@ function diff_direct_sum_k0!(q::Array{T}, z::Array{T}, para::SoEwald2DLongIntera
     for i in 1:para.n_atoms
         for j in 1:para.n_atoms
             z_ij = z[i] - z[j]
-            F_z[i] -= q[i] * q[j] * (erf(α * z_ij)) * π / (para.L[1] * para.L[2])
+            F_z[i] -= q[i] * q[j] * (erf(α * z_ij)) / (4 * para.L[1] * para.L[2])
         end
     end
     return nothing
@@ -100,9 +100,9 @@ function diff_direct_sum_k!(K::Tuple{T, T, T}, q::Array{T}, x::Array{T}, y::Arra
                 2α / sqrt(π) * exp(k * z_ij) * exp(-(k / (2α) + α * z_ij)^2) +
                 2α / sqrt(π) * exp(- k * z_ij) * exp(-(k / (2α) - α * z_ij)^2) ) / k
         end
-        F_x[i] += sum_x * π / (2 * para.L[1] * para.L[2])
-        F_y[i] += sum_y * π / (2 * para.L[1] * para.L[2])
-        F_z[i] += sum_z * π / (2 * para.L[1] * para.L[2])
+        F_x[i] += sum_x / (8 * para.L[1] * para.L[2])
+        F_y[i] += sum_y / (8 * para.L[1] * para.L[2])
+        F_z[i] += sum_z / (8 * para.L[1] * para.L[2])
     end
 
     return nothing

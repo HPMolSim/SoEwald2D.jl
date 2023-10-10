@@ -1,5 +1,3 @@
-export SoePara, SoEwald2DPara, AdPara, IterPara, revise_adpara!, update_iterpara!, SoEwald2DLongInteraction, revise_interaction!
-
 struct SoePara{T} 
     sw::Vector{Tuple{T, T}}
 end
@@ -120,6 +118,12 @@ struct SoEwald2DShortInteraction{T}
     accuracy::T
     α::T
     n_atoms::Int64
+
+    r_c::T
+end
+
+function SoEwald2DShortInteraction(ϵ_0::T, L::NTuple{3, T}, accuracy::T, α::T, n_atoms::Int64, r_c::T) where{T<:Number}
+    return SoEwald2DShortInteraction{T}(ϵ_0, L, accuracy, α, n_atoms, r_c)
 end
 
 function revise_interaction!(interaction::SoEwald2DLongInteraction{T}, sys::MDSys{T}, info::SimulationInfo{T}) where{T<:Number}

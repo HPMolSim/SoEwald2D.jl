@@ -4,14 +4,17 @@ authors = ["Xuanzhao Gao"]
 version = "1.0.0-DEV"
 
 [deps]
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 Enzyme = "7da242da-08ed-463a-9acd-ee780be4f1d9"
 ExTinyMD = "fec76197-d59f-46dd-a0ed-76a83c21f7aa"
+ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
 GaussQuadrature = "d54b0c1a-921d-58e0-8e36-89d8069c0969"
 LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
 
 [compat]
+ExTinyMD = "0.2.1"
 julia = "1"
 
 [extras]
