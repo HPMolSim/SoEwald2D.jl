@@ -18,8 +18,7 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1.0'
-          - '1.9'
+          - '1.10'
           - 'nightly'
         os:
           - ubuntu-latest
@@ -38,6 +37,3 @@ jobs:
       - uses: codecov/codecov-action@v3
         with:
           files: lcov.info
-      - uses: julia-actions/julia-uploadcoveralls@v1
-        env:
-          COVERALLS_TOKEN: ${{ secrets.COVERALLS_TOKEN }}
