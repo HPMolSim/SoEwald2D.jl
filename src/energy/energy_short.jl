@@ -1,5 +1,5 @@
 function SoEwald2D_Es_pair(q_1::T, q_2::T, α::T, r_sq::T) where{T}
-    return q_1 * q_2 * erfc(α * sqrt(r_sq)) / sqrt(r_sq) / T(2)
+    return q_1 * q_2 * erfc(α * sqrt(r_sq)) / sqrt(r_sq)
 end
 
 function SoEwald2D_Es_self(q::T, α::T) where{T}

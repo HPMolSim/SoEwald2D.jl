@@ -33,14 +33,6 @@ mutable struct IterPara
     B::Vector{ComplexF64}
     C::Vector{ComplexF64}
     D::Vector{ComplexF64}
-    A1::Vector{ComplexF64}
-    B1::Vector{ComplexF64}
-    C1::Vector{ComplexF64}
-    D1::Vector{ComplexF64}
-    A2::Vector{ComplexF64}
-    B2::Vector{ComplexF64}
-    C2::Vector{ComplexF64}
-    D2::Vector{ComplexF64}
     z_list::Vector{Int64}
     m_list::Vector{Int64}
 end
@@ -51,19 +43,11 @@ function IterPara(n_atoms::Int64)
     B = zeros(ComplexF64, n_atoms)
     C = zeros(ComplexF64, n_atoms)
     D = zeros(ComplexF64, n_atoms)
-    A1 = zeros(ComplexF64, n_atoms)
-    B1 = zeros(ComplexF64, n_atoms)
-    C1 = zeros(ComplexF64, n_atoms)
-    D1 = zeros(ComplexF64, n_atoms)
-    A2 = zeros(ComplexF64, n_atoms)
-    B2 = zeros(ComplexF64, n_atoms)
-    C2 = zeros(ComplexF64, n_atoms)
-    D2 = zeros(ComplexF64, n_atoms)
 
     z_list = zeros(Int64, n_atoms)
     m_list = zeros(Int64, n_atoms)
 
-    return IterPara(A, B, C, D, A1, B1, C1, D1, A2, B2, C2, D2, z_list, m_list)
+    return IterPara(A, B, C, D, z_list, m_list)
 end
 
 # this function is possibly not needed 
@@ -77,6 +61,48 @@ function revise_iterpara!(iterpara::IterPara)
         iterpara.z_list[i] = zero(Int64)
         iterpara.m_list[i] = zero(Int64)
     end
+    return nothing
+end
+
+mutable struct AdPara{T}
+    Fx::Vector{T}
+    Fy::Vector{T}
+    Fz::Vector{T}
+    U::Vector{T}
+    dU::Vector{T}
+    iterpara_t::IterPara
+end
+
+function AdPara(n_atoms::TI) where{TI<:Integer} 
+    T = Float64
+    Fx = zeros(T, n_atoms)
+    Fy = zeros(T, n_atoms)
+    Fz = zeros(T, n_atoms)
+    U = [zero(T)]
+    dU = [one(T)]
+    iterpara_t = IterPara(n_atoms)
+    return AdPara{T}(Fx, Fy, Fz, U, dU, iterpara_t)
+end
+
+function AdPara(T::DataType, n_atoms::TI) where{TI<:Integer} 
+    Fx = zeros(T, n_atoms)
+    Fy = zeros(T, n_atoms)
+    Fz = zeros(T, n_atoms)
+    U = [zero(T)]
+    dU = [one(T)]
+    iterpara_t = IterPara(n_atoms)
+    return AdPara{T}(Fx, Fy, Fz, U, dU, iterpara_t)
+end
+
+function revise_adpara!(adpara::AdPara{T}, n_atoms::TI) where{T<:Number, TI<:Integer}
+    for i in 1:n_atoms
+        adpara.Fx[i] = zero(T)
+        adpara.Fy[i] = zero(T)
+        adpara.Fz[i] = zero(T)
+    end
+    adpara.U[1] = zero(T)
+    adpara.dU[1] = one(T)
+    adpara.iterpara_t = IterPara(n_atoms)
     return nothing
 end
 
@@ -98,6 +124,7 @@ struct SoEwald2DLongInteraction{T} <: ExTinyMD.AbstractInteraction
     z::Vector{T}
     acceleration::Vector{Point{3, T}}
     iterpara::IterPara
+    adpara::AdPara
 end
 
 function SoEwald2DLongInteraction(ϵ_0::T, L::NTuple{3, T}, accuracy::T, α::T, n_atoms::Int64, k_c::T, soepara::SoePara{ComplexF64}) where{T<:Number}
@@ -124,11 +151,12 @@ function SoEwald2DLongInteraction(ϵ_0::T, L::NTuple{3, T}, accuracy::T, α::T, 
     acceleration = Vector{Point{3, T}}(undef, n_atoms)
 
     iterpara = IterPara(n_atoms)
+    adpara = AdPara(n_atoms)
 
-    return SoEwald2DLongInteraction(ϵ_0, L, accuracy, α, n_atoms, k_c, k_set, soepara, q, mass, x, y, z, acceleration, iterpara)
+    return SoEwald2DLongInteraction(ϵ_0, L, accuracy, α, n_atoms, k_c, k_set, soepara, q, mass, x, y, z, acceleration, iterpara, adpara)
 end
 
-struct SoEwald2DShortInteraction{T}
+struct SoEwald2DShortInteraction{T} <: ExTinyMD.AbstractInteraction
     ϵ_0::T
     L::NTuple{3, T}
     accuracy::T

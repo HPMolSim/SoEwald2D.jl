@@ -14,7 +14,7 @@
 
     info = SimulationInfo(n_atoms, atoms, (0.0, L, 0.0, L, 0.0, 10.0), boundary; min_r = 1.0, temp = 1.0)
 
-    para = SoEwald2DLongInteraction(1.0, (L, L, L), 1e-5, 1.0, n_atoms, 10.0, SoePara())
+    para = SoEwald2DLongInteraction(1.0, (L, L, L), 1e-5, 1.0, n_atoms, sqrt(- 4 * log(1e-4)), SoePara())
 
     interactions = [(LennardJones(), CellListDir3D(info, 4.5, boundary, 100))]
     loggers = [TempartureLogger(100, output = false)]
@@ -65,9 +65,9 @@ end
     )
         
     ϵ_0 = 1.0
-    accuracy = 1e-5
-    α = 2.0
-    r_c = 4.5
+    accuracy = 1e-6
+    α = 0.5
+    r_c = 9.9
     k_c = sqrt(-4 * α * log(accuracy))
 
     no_finder = NoNeighborFinder(n_atoms);
@@ -78,7 +78,7 @@ end
     Es = ExTinyMD.energy(interaction_short, celllist, sys, info)
     El = ExTinyMD.energy(interaction_long, no_finder, sys, info)
 
-    N_real = 200
+    N_real = 100
     N_img = 0
     ICM_sys = IcmSys((0.0, 0.0), (L, L, L), N_real, N_img)
     coords = [p_info.position for p_info in info.particle_info]

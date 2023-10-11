@@ -59,7 +59,7 @@ function diff_direct_sum(interaction::SoEwald2DLongInteraction{T}, sys::MDSys{T}
     for K in interaction.k_set
         diff_direct_sum_k!(K, interaction.q, interaction.x, interaction.y, interaction.z, interaction, sum)
     end
-    return sum
+    return - sum .* T(2)
 end
 
 function diff_direct_sum_k0!(q::Array{T}, z::Array{T}, para::SoEwald2DLongInteraction{T}, sum::Vector{Point{3, T}}) where {T<:Number}
