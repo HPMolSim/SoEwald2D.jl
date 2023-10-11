@@ -4,6 +4,7 @@ using SpecialFunctions, LinearAlgebra, Enzyme, GaussQuadrature, ExTinyMD, Forwar
 
 export SoePara, SoEwald2DPara, AdPara, IterPara, revise_adpara!, update_iterpara!, revise_interaction!, update_iterpara_z!, update_iterpara_m!
 export SoEwald2DLongInteraction, SoEwald2DShortInteraction, SoEwald2D_Fs!, SoEwald2D_Fl!, SoEwald2D_El, SoEwald2D_Es
+export diff_direct_sum_k0!, diff_direct_sum_k!, diff_direct_sum, force_sum_k!, force_sum_k0!
 
 include("types.jl")
 

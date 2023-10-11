@@ -33,6 +33,14 @@ mutable struct IterPara
     B::Vector{ComplexF64}
     C::Vector{ComplexF64}
     D::Vector{ComplexF64}
+    A1::Vector{ComplexF64}
+    B1::Vector{ComplexF64}
+    C1::Vector{ComplexF64}
+    D1::Vector{ComplexF64}
+    A2::Vector{ComplexF64}
+    B2::Vector{ComplexF64}
+    C2::Vector{ComplexF64}
+    D2::Vector{ComplexF64}
     z_list::Vector{Int64}
     m_list::Vector{Int64}
 end
@@ -43,11 +51,19 @@ function IterPara(n_atoms::Int64)
     B = zeros(ComplexF64, n_atoms)
     C = zeros(ComplexF64, n_atoms)
     D = zeros(ComplexF64, n_atoms)
+    A1 = zeros(ComplexF64, n_atoms)
+    B1 = zeros(ComplexF64, n_atoms)
+    C1 = zeros(ComplexF64, n_atoms)
+    D1 = zeros(ComplexF64, n_atoms)
+    A2 = zeros(ComplexF64, n_atoms)
+    B2 = zeros(ComplexF64, n_atoms)
+    C2 = zeros(ComplexF64, n_atoms)
+    D2 = zeros(ComplexF64, n_atoms)
 
     z_list = zeros(Int64, n_atoms)
     m_list = zeros(Int64, n_atoms)
 
-    return IterPara(A, B, C, D, z_list, m_list)
+    return IterPara(A, B, C, D, A1, B1, C1, D1, A2, B2, C2, D2, z_list, m_list)
 end
 
 # this function is possibly not needed 
