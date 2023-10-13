@@ -31,8 +31,10 @@
 
     U_soe = SoEwald2D_El(para, sys, info)
     U_dir = direct_sum(para, sys, info)
+    U_soe_dir = soe_direct_sum(para, sys, info, para.soepara)
 
     @test U_soe ≈ U_dir
+    @test isapprox(U_dir, U_soe_dir, atol = 1e-13)
 end
 
 @testset "compare energy with ICM" begin

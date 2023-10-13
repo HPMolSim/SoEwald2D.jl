@@ -1,12 +1,40 @@
 function soerfc(x::T1, sw::SoePara{T2}) where{T1<:Real, T2}
-
-    x = T2(x)
-
     sum = zero(T2)
-    for (si, wi) in sw.sw
-        sum += wi * exp( - si * x)
+    if x > 0.0
+        for (si, wi) in sw.sw
+            sum += wi * exp( - si * x)
+        end
+    else
+        for (si, wi) in sw.sw
+            sum += - wi * exp(si * x)
+        end
+        sum = 2.0 + sum
     end
     return T1(real(sum))
+end
+
+function soerf(x::T1, sw::SoePara{T2}) where{T1<:Real, T2}
+    return 1.0 - soerfc(x, sw)
+end
+
+# for exp(-(αk)^2)
+function soexp(x::T1, sw::SoePara{T2}) where{T1<:Real, T2}
+    x = abs(x)
+    sum = zero(ComplexF64)
+    for (s, w) in sw.sw
+        sum += w * s * sqrt(π) / 2 * exp(- s * x)
+    end
+    return T1(real(sum))
+end
+
+# this formula is used to count the formula exp(kz) erfc(k/2α + αz)
+function soexp_mul_erfc(z::T, α::T, k::T, soepara::SoePara{T2}) where{T<:Real, T2}
+    k = T2(k)
+    sum = zero(ComplexF64)
+    for (s, w) in soepara.sw
+        sum += α * w * s / (s * α + k) * exp(-s * α * z)
+    end
+    return T(real(exp(- k^2 / (4 * α^2)) * sum))
 end
 
 SoePara4() = SoePara{ComplexF64}([
@@ -50,43 +78,3 @@ SoePara() = SoePara{ComplexF64}([
 ])
 
 SoePara16() = SoePara()
-
-function soexp(x::T1, sw::SoExPara{ComplexF64}) where{T1<:Real}
-    x = T2(x)
-
-    sum = zero(T2)
-    for (si, wi) in sw.sw
-        sum += wi * si * exp( - si * x)
-    end
-    return T1(real(sum))
-end
-
-SoExPara() = SoExPara{ComplexF64}(
-    [(4.56160429581067 - 8.10664614462486im, 5.99673832958228e-6 + 1.6866670619023293e-6im),
-    (4.56160429581067 + 8.10664614462486im, 5.99673832964075e-6 - 1.6866670617974198e-6im),
-    (4.67614751620509 - 6.66817205403247im, -0.00128256763349392 - 5.695159986823037e-5im),
-    (4.67614751620509 + 6.66817205403247im, -0.0012825676334947697 + 5.6951599866379874e-5im),
-    (4.75706771210077 - 5.46277771275372im, 0.046798971665701586 - 0.02484280827698599im),
-    (4.75706771210077 + 5.46277771275372im, 0.04679897166570259 + 0.024842808277016595im),
-    (4.81739468471801 - 4.37139574323745im, -0.3352670287775939 + 0.7570751116791558im),
-    (4.81739468471801 + 4.37139574323745im, -0.33526702877757086 - 0.7570751116793528im),
-    (4.86201933938979 - 3.34750236244862im, -1.9959868267018301 - 5.9922116425601im),
-    (4.86201933938979 + 3.34750236244862im, -1.9959868267022096 + 5.992211642561009im),
-    (4.89345823682377 - 2.3658861273834im, 23.900979544670903 + 12.086236335461203im),
-    (4.89345823682377 + 2.3658861273834im, 23.900979544673195 - 12.086236335463198im),
-    (4.91338156910332 - 1.41021110952036im, -64.06321166786559 + 22.5380203666186im),
-    (4.91338156910332 + 1.41021110952036im, -64.06321166787049 - 22.538020366617197im),
-    (4.92300187934591 - 0.468589313154398im, 42.94796357790219 - 98.1965284307393im),
-    (4.92300187934591 + 0.468589313154398im, 42.9479635779079 + 98.1965284307392im),
-    (0.0334524767879181 - 0.0245907245253121im, 2.7788641755593297e-16 + 1.0505246242344095e-16im),
-    (0.0334524767879181 + 0.0245907245253121im, 2.7788641230727297e-16 - 1.0505268058842997e-16im)]
-)
-
-# this formula is used to count the formula exp(kz) erfc(k/2α + αz)
-function exp_mul_erfc(z::T, α::T, k::T, soexpara::SoExPara{ComplexF64}) where{T <: Number}
-    sum = zero(ComplexF64)
-    for (s, w) in soexpara.sw
-        sum += w / (s * α + k) * exp(-s * α * z)
-    end
-    return exp(- k^2 / (4 * α^2)) * sum * 2α / sqrt(π)
-end
