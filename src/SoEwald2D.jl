@@ -2,7 +2,8 @@ module SoEwald2D
 
 using SpecialFunctions, LinearAlgebra, Enzyme, GaussQuadrature, ExTinyMD, ForwardDiff
 
-export SoePara, SoEwald2DPara, AdPara, IterPara, revise_adpara!, update_iterpara!, revise_interaction!, update_iterpara_z!, update_iterpara_m!
+export SoePara, SoePara4, SoePara8, SoePara16, soerfc
+export AdPara, IterPara, revise_adpara!, update_iterpara!, revise_interaction!, update_iterpara_z!, update_iterpara_m!
 export SoEwald2DLongInteraction, SoEwald2DShortInteraction, SoEwald2D_Fs!, SoEwald2D_Fl!, SoEwald2D_El, SoEwald2D_Es
 export diff_direct_sum, ad_energy_sum!
 
