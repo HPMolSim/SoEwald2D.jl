@@ -2,10 +2,6 @@ struct SoePara{T}
     sw::Vector{Tuple{T, T}}
 end
 
-struct SoExPara{T} 
-    sw::Vector{Tuple{T, T}}
-end
-
 mutable struct IterPara
     A::Vector{ComplexF64}
     B::Vector{ComplexF64}
