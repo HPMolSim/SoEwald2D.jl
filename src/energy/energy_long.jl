@@ -38,8 +38,8 @@ function energy_sum_k(K::Tuple{T, T, T}, q::Array{T}, x::Array{T}, y::Array{T}, 
     c_1 = zero(ComplexF64)
     c_2 = zero(ComplexF64)
     for (s, w) in soepara.sw
-        c_1 += α * w * s / (s * α + k)
-        c_2 += 2.0 * α * w * s * s * α / ((s * α)^2 - k^2)
+        c_1 += α * w * 2 / sqrt(π) / (s * α + k)
+        c_2 += 2.0 * α * w * s * 2.0 / sqrt(π) * α / ((s * α)^2 - k^2)
     end
     
     # compute the part irrelevant to SOE
@@ -62,7 +62,7 @@ function energy_sum_k(K::Tuple{T, T, T}, q::Array{T}, x::Array{T}, y::Array{T}, 
             sum_k_soe += q[j] * exp(1.0im * (k_x * x[j] + k_y * y[j]) - s*α*z[j]) * iterpara.A[i]
         end
 
-        sum_k += 2.0 * k * s * w * α * sum_k_soe / (k^2.0 - (s * α)^2.0)
+        sum_k += 2.0 * k * 2.0 / sqrt(π) * w * α * sum_k_soe / (k^2.0 - (s * α)^2.0)
     end
 
     return 2.0 / k * real(sum_k)
@@ -111,8 +111,8 @@ function energy_sum_k0(q::Array{T}, z::Array{T}, n_atoms::Int64, α::T, soepara:
             soe_sum_k0_1 += q_i * (z_i * iterpara.A[i] - iterpara.B[i]) * exp( - s * α * z_i)
             soe_sum_k0_2 += q_i * iterpara.A[i] * exp( - s * α * z_i)
         end
-        sum_k0 -= 2 * w * soe_sum_k0_1 
-        sum_k0 += 2 * w * s / (α * sqrt(π)) * soe_sum_k0_2 * sqrt(π) / 2
+        sum_k0 -= 2 * w / s * 2.0 / sqrt(π) * soe_sum_k0_1 
+        sum_k0 += 2 * w / (α * sqrt(π)) * soe_sum_k0_2
     end
     return real(sum_k0)
 end
