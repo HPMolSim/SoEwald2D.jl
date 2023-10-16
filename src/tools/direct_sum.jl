@@ -91,7 +91,7 @@ function soe_direct_sum_ki(i::Int, K::Tuple{T, T, T}, q::Array{T}, x::Array{T}, 
         y_ij = y[i] - y[j]
         z_ij = z[i] - z[j]
         z_ij = abs(z_ij)
-        sum_ki += q[i] * q[j] * cos(k_x * x_ij + k_y * y_ij) * (soexp_mul_erfc(z_ij, α, k, soepara) + exp( - k * z_ij) * soerfc(k / (2α) - α * z_ij, soepara)) / (8 * para.L[1] * para.L[2] * k)
+        sum_ki += q[i] * q[j] * cos(k_x * x_ij + k_y * y_ij) * (soexp_mul_erfc(z_ij, α, k, soepara) + soexp_mul_erfc(-z_ij, α, k, soepara)) / (8 * para.L[1] * para.L[2] * k)
     end
     return sum_ki
 end

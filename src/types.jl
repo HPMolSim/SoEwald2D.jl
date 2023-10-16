@@ -5,23 +5,17 @@ end
 mutable struct IterPara
     A::Vector{ComplexF64}
     B::Vector{ComplexF64}
-    C::Vector{ComplexF64}
-    D::Vector{ComplexF64}
     z_list::Vector{Int64}
-    m_list::Vector{Int64}
 end
 
 # due to the soe approach is defined in complex space, we directlly defined the vector as ComplexF64
 function IterPara(n_atoms::Int64)
     A = zeros(ComplexF64, n_atoms)
     B = zeros(ComplexF64, n_atoms)
-    C = zeros(ComplexF64, n_atoms)
-    D = zeros(ComplexF64, n_atoms)
 
     z_list = zeros(Int64, n_atoms)
-    m_list = zeros(Int64, n_atoms)
 
-    return IterPara(A, B, C, D, z_list, m_list)
+    return IterPara(A, B, z_list)
 end
 
 # this function is possibly not needed 
@@ -30,10 +24,7 @@ function revise_iterpara!(iterpara::IterPara)
     for i = 1:n_atoms
         iterpara.A[i] = zero(ComplexF64)
         iterpara.B[i] = zero(ComplexF64)
-        iterpara.C[i] = zero(ComplexF64)
-        iterpara.D[i] = zero(ComplexF64)
         iterpara.z_list[i] = zero(Int64)
-        iterpara.m_list[i] = zero(Int64)
     end
     return nothing
 end

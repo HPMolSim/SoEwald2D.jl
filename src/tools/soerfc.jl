@@ -31,8 +31,16 @@ end
 function soexp_mul_erfc(z::T, α::T, k::T, soepara::SoePara{T2}) where{T<:Real, T2}
     k = T2(k)
     sum = zero(ComplexF64)
-    for (s, w) in soepara.sw
-        sum += α * w * s / (s * α + k) * exp(-s * α * z)
+    if z ≥ 0
+        for (s, w) in soepara.sw
+            sum += α * w * s / (s * α + k) * exp(-s * α * z)
+        end
+    else
+        for (s, w) in soepara.sw
+            sum += α * w * s * ( 
+                - exp(s * α * z) / (s * α - k) 
+                + 2.0 * s * α / ((s * α)^2 - k^2) * exp(k * z))
+        end
     end
     return T(real(exp(- k^2 / (4 * α^2)) * sum))
 end
