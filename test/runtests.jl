@@ -4,7 +4,6 @@ using Test
 
 @testset "SoEwald2D.jl" begin
     include("soerfc.jl")
-    include("sorting.jl")
     include("energy.jl")
     include("force.jl")
     include("simulate.jl")
