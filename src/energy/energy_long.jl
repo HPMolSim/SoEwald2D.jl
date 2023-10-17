@@ -8,10 +8,13 @@ function update_iterpara_A!(iterpara::IterPara, q::Array{T}, x::Array{T}, y::Arr
 
     #update A
     iterpara.A[1] = zero(ComplexF64)
-    for i in 2:n_atoms
+    j0 = iterpara.z_list[1]
+    iterpara.A[2] = q[j0] * exp(- 1.0im * (k_x * x[j0] + k_y * y[j0]))
+    for i in 3:n_atoms
         # qj exp (−ik · ρj − k zj + sl α zj)
         j = iterpara.z_list[i - 1]
-        iterpara.A[i] = iterpara.A[i - 1] + q[j] * exp(- 1.0im * (k_x * x[j] + k_y * y[j]) + s * α * z[j])
+        l = iterpara.z_list[i - 2]
+        iterpara.A[i] = iterpara.A[i - 1] * exp(s * α * (z[l] - z[j])) + q[j] * exp(- 1.0im * (k_x * x[j] + k_y * y[j]))
     end
 
     return nothing
@@ -22,10 +25,13 @@ function update_iterpara_B!(iterpara::IterPara, q::Array{T}, x::Array{T}, y::Arr
     k_x, k_y, k = K
 
     #update B
-    iterpara.B[1] = zero(ComplexF64)
-    for i in 2:n_atoms
+    j0 = iterpara.z_list[1]
+    iterpara.B[2] = q[j0] * exp(- 1.0im * (k_x * x[j0] + k_y * y[j0]))
+
+    for i in 3:n_atoms
         j = iterpara.z_list[i - 1]
-        iterpara.B[i] = iterpara.B[i - 1] + q[j] * exp(- 1.0im * (k_x * x[j] + k_y * y[j]) + k * z[j])
+        l = iterpara.z_list[i - 2]
+        iterpara.B[i] = iterpara.B[i - 1] * exp(k * (z[l] - z[j])) + q[j] * exp(- 1.0im * (k_x * x[j] + k_y * y[j]))
     end
 
     return nothing
@@ -47,8 +53,12 @@ function energy_sum_k(K::Tuple{T, T, T}, q::Array{T}, x::Array{T}, y::Array{T}, 
     sum_k = zero(ComplexF64)
     for i in 1:n_atoms
         sum_k += q[i] * q[i] * c_1
+    end
+
+    for i in 2:n_atoms
         j = iterpara.z_list[i]
-        sum_k += c_2 * q[j] * exp(1.0im * (k_x * x[j] + k_y * y[j]) - k * z[j]) * iterpara.B[i]
+        l = iterpara.z_list[i - 1]
+        sum_k += c_2 * q[j] * exp(1.0im * (k_x * x[j] + k_y * y[j]) - k * (z[j] - z[l])) * iterpara.B[i]
     end
 
     #compute the SOE part
@@ -57,9 +67,10 @@ function energy_sum_k(K::Tuple{T, T, T}, q::Array{T}, x::Array{T}, y::Array{T}, 
 
         sum_k_soe = zero(ComplexF64)
         
-        for i in 1:n_atoms
+        for i in 2:n_atoms
             j = iterpara.z_list[i]
-            sum_k_soe += q[j] * exp(1.0im * (k_x * x[j] + k_y * y[j]) - s*α*z[j]) * iterpara.A[i]
+            l = iterpara.z_list[i - 1]
+            sum_k_soe += q[j] * exp(1.0im * (k_x * x[j] + k_y * y[j]) - s*α*z[j] + s*α*z[l]) * iterpara.A[i]
         end
 
         sum_k += 2.0 * k * 2.0 / sqrt(π) * w * α * sum_k_soe / (k^2.0 - (s * α)^2.0)
@@ -98,18 +109,20 @@ function energy_sum_k0(q::Array{T}, z::Array{T}, n_atoms::Int64, α::T, soepara:
     for (s, w) in soepara.sw
         soe_sum_k0_1 = zero(ComplexF64) # for the erfc part
         soe_sum_k0_2 = zero(ComplexF64) # for the exp(-(α z_ij)^2) part
-        for i in 2:n_atoms
-            l = z_list[i - 1]
-            t = q[l] * exp(s * α * z[l])
-            iterpara.A[i] = iterpara.A[i - 1] + t
-            iterpara.B[i] = iterpara.B[i - 1] + z[l] * t
+        j0 = z_list[1]
+        iterpara.A[2] = q[j0]
+        iterpara.B[2] = z[j0] * q[j0]
+        for i in 3:n_atoms
+            j = z_list[i - 1]
+            l = z_list[i - 2]
+            iterpara.A[i] = iterpara.A[i - 1] * exp(s * α * (z[l] - z[j])) + q[j]
+            iterpara.B[i] = iterpara.B[i - 1] * exp(s * α * (z[l] - z[j])) + z[j] * q[j]
         end
-        for i in 1:n_atoms
-            l = z_list[i]
-            q_i = q[l]
-            z_i = z[l]
-            soe_sum_k0_1 += q_i * (z_i * iterpara.A[i] - iterpara.B[i]) * exp( - s * α * z_i)
-            soe_sum_k0_2 += q_i * iterpara.A[i] * exp( - s * α * z_i)
+        for i in 2:n_atoms
+            j = z_list[i]
+            l = z_list[i - 1]
+            soe_sum_k0_1 += q[j] * (z[j] * iterpara.A[i] - iterpara.B[i]) * exp( - s * α * (z[j] - z[l]))
+            soe_sum_k0_2 += q[j] * iterpara.A[i] * exp( - s * α * (z[j] - z[l]))
         end
         sum_k0 -= 2 * w / s * 2.0 / sqrt(π) * soe_sum_k0_1 
         sum_k0 += 2 * w / (α * sqrt(π)) * soe_sum_k0_2
