@@ -1,7 +1,7 @@
 name = "SoEwald2D"
 uuid = "0daaa638-a47d-40d8-b855-b9e525a61752"
 authors = ["Xuanzhao Gao"]
-version = "0.1.0"
+version = "0.1.1"
 
 [deps]
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
