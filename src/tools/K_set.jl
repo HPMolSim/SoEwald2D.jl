@@ -1,7 +1,7 @@
 function generate_K_set(α::T, L::NTuple{3, T}) where{T <: Number}
-    P = zero(T)
-    k_c = sqrt(64 * α^2 * log(10))
+
     L_x, L_y, L_z = L
+    k_c = sqrt(64 * α^2 * log(10)) + 4π / sqrt(L_x * L_y)
 
     mx_max = ceil(Int, k_c * L_x / 2π) + 1
     my_max = ceil(Int, k_c * L_y / 2π) + 1
