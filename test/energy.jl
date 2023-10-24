@@ -88,6 +88,5 @@ end
     ref_pos, ref_charge = IcmSysInit(ICM_sys, coords, charge)
     energy_icm = IcmEnergy(ICM_sys, coords, charge, ref_pos, ref_charge)
 
-    @show Es + El, energy_icm
     @test isapprox(energy_icm, (Es + El), atol = 1e-3)
 end
