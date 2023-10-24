@@ -67,20 +67,20 @@ end
     )
         
     ϵ_0 = 1.0
-    accuracy = 1e-6
-    α = 0.5
-    r_c = 9.9
-    k_c = sqrt(-4 * α * log(accuracy))
+    α = 2.0
+    s = 3.0
+    r_c = s / α
+    k_c = 2 * s * α
 
     no_finder = NoNeighborFinder(n_atoms);
     celllist = CellList3D(info, r_c, boundary, 1);
-    interaction_long = SoEwald2DLongInteraction(ϵ_0, (L, L, L), accuracy, α, n_atoms, k_c, SoePara());
-    interaction_short = SoEwald2DShortInteraction(ϵ_0, (L, L, L), accuracy, α, n_atoms, r_c);
+    interaction_long = SoEwald2DLongInteraction(ϵ_0, (L, L, L), s, α, n_atoms, k_c, SoePara());
+    interaction_short = SoEwald2DShortInteraction(ϵ_0, (L, L, L), s, α, n_atoms, r_c);
     
     Es = ExTinyMD.energy(interaction_short, celllist, sys, info)
     El = ExTinyMD.energy(interaction_long, no_finder, sys, info)
 
-    N_real = 100
+    N_real = 200
     N_img = 0
     ICM_sys = IcmSys((0.0, 0.0), (L, L, L), N_real, N_img)
     coords = [p_info.position for p_info in info.particle_info]
@@ -88,5 +88,6 @@ end
     ref_pos, ref_charge = IcmSysInit(ICM_sys, coords, charge)
     energy_icm = IcmEnergy(ICM_sys, coords, charge, ref_pos, ref_charge)
 
-    @test isapprox(energy_icm, (Es + El), atol = 1e-2)
+    @show Es + El, energy_icm
+    @test isapprox(energy_icm, (Es + El), atol = 1e-3)
 end
