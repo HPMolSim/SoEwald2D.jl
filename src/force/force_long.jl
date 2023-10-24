@@ -10,7 +10,7 @@ function ad_energy_sum!(interaction::SoEwald2DLongInteraction{T}) where{T}
     y = interaction.y
     z = interaction.z
     
-    autodiff(ReverseWithPrimal, energy_sum!, Const(q), Duplicated(x, adpara.Fx), Duplicated(y, adpara.Fy), Duplicated(z, adpara.Fz), Const(interaction.n_atoms), Const(interaction.L), Const(interaction.α), Const(soepara), Duplicated(iterpara, adpara.iterpara_t), Const(interaction.k_set), Const(interaction.rbm), Const(interaction.rbm_p), Const(interaction.P), Duplicated(adpara.U, adpara.dU))
+    autodiff(ReverseWithPrimal, energy_sum!, Const(q), Duplicated(x, adpara.Fx), Duplicated(y, adpara.Fy), Duplicated(z, adpara.Fz), Const(interaction.n_atoms), Const(interaction.ϵ_0), Const(interaction.L), Const(interaction.α), Const(soepara), Duplicated(iterpara, adpara.iterpara_t), Const(interaction.k_set), Const(interaction.rbm), Const(interaction.rbm_p), Const(interaction.P), Duplicated(adpara.U, adpara.dU))
 
     return nothing
 end

@@ -66,9 +66,9 @@ end
         simulator = simulator
     )
         
-    ϵ_0 = 1.0
-    α = 2.0
-    s = 3.0
+    ϵ_0 = 1.0 / 3.5
+    α = 1.0
+    s = 4.0
     r_c = s / α
     k_c = 2 * s * α
 
@@ -86,7 +86,7 @@ end
     coords = [p_info.position for p_info in info.particle_info]
     charge = [atoms[p_info.id].charge for p_info in info.particle_info]
     ref_pos, ref_charge = IcmSysInit(ICM_sys, coords, charge)
-    energy_icm = IcmEnergy(ICM_sys, coords, charge, ref_pos, ref_charge)
+    energy_icm = IcmEnergy(ICM_sys, coords, charge, ref_pos, ref_charge) / ϵ_0
 
     @test isapprox(energy_icm, (Es + El), atol = 1e-3)
 end

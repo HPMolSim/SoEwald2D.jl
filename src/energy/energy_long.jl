@@ -130,7 +130,7 @@ function energy_sum_k0(q::Array{T}, z::Array{T}, n_atoms::Int64, α::T, soepara:
     return real(sum_k0)
 end
 
-function energy_sum!(q::Array{T}, x::Array{T}, y::Array{T}, z::Array{T}, n_atoms::Int64, L::NTuple{3, T}, α::T, soepara::SoePara, iterpara::IterPara, k_set::Array{NTuple{3, T}}, rbm::Bool, rbm_p::Int, P::T, U::Array{T}) where{T<:Number}
+function energy_sum!(q::Array{T}, x::Array{T}, y::Array{T}, z::Array{T}, n_atoms::Int64, ϵ_0::T, L::NTuple{3, T}, α::T, soepara::SoePara, iterpara::IterPara, k_set::Array{NTuple{3, T}}, rbm::Bool, rbm_p::Int, P::T, U::Array{T}) where{T<:Number}
     energy = zero(T)
 
     update_iterpara_z!(iterpara, z)
@@ -152,7 +152,7 @@ function energy_sum!(q::Array{T}, x::Array{T}, y::Array{T}, z::Array{T}, n_atoms
 
     energy *= π / (2 * L[1] * L[2])
     energy += U_k0
-    U[1] = energy / 4π
+    U[1] = energy / (4π * ϵ_0)
     return nothing
 end
 
@@ -162,7 +162,7 @@ function SoEwald2D_El(interaction::SoEwald2DLongInteraction{T}, sys::MDSys, info
     U = [zero(T)]
 
     revise_interaction!(interaction, sys, info)
-    energy_sum!(interaction.q, interaction.x, interaction.y, interaction.z, interaction.n_atoms, interaction.L, interaction.α, interaction.soepara, interaction.iterpara, interaction.k_set, interaction.rbm, interaction.rbm_p, interaction.P, U)
+    energy_sum!(interaction.q, interaction.x, interaction.y, interaction.z, interaction.n_atoms, interaction.ϵ_0, interaction.L, interaction.α, interaction.soepara, interaction.iterpara, interaction.k_set, interaction.rbm, interaction.rbm_p, interaction.P, U)
     
     return U[1]
 end

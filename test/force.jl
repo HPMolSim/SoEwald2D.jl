@@ -74,16 +74,16 @@ end
         simulator = simulator
     )
         
-    ϵ_0 = 1.0
-    accuracy = 1e-6
-    α = 0.5
-    r_c = 9.9
-    k_c = sqrt(-4 * α * log(accuracy))
+    ϵ_0 = 1.0 / 3.5
+    α = 1.0
+    s = 3.0
+    r_c = s / α
+    k_c = 2 * s * α
 
     no_finder = NoNeighborFinder(n_atoms);
     celllist = CellList3D(info, r_c, boundary, 1);
-    interaction_long = SoEwald2DLongInteraction(ϵ_0, (L, L, L), accuracy, α, n_atoms, k_c, SoePara());
-    interaction_short = SoEwald2DShortInteraction(ϵ_0, (L, L, L), accuracy, α, n_atoms, r_c);
+    interaction_long = SoEwald2DLongInteraction(ϵ_0, (L, L, L), s, α, n_atoms, k_c, SoePara());
+    interaction_short = SoEwald2DShortInteraction(ϵ_0, (L, L, L), s, α, n_atoms, r_c);
 
     ExTinyMD.update_acceleration!(interaction_short, celllist, sys, info)
     ExTinyMD.update_acceleration!(interaction_long, no_finder, sys, info)
@@ -95,7 +95,7 @@ end
     coords = [p_info.position for p_info in info.particle_info]
     charge = [atoms[p_info.id].charge for p_info in info.particle_info]
     ref_pos, ref_charge = IcmSysInit(ICM_sys, coords, charge)
-    force_icm = IcmForce(ICM_sys, coords, charge, ref_pos, ref_charge)
+    force_icm = IcmForce(ICM_sys, coords, charge, ref_pos, ref_charge) ./ ϵ_0
 
     for i in 1:n_atoms
         error_i = sqrt(dist2(force_icm[i], info.particle_info[i].acceleration))
