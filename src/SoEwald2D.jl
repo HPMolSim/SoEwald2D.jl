@@ -1,6 +1,6 @@
 module SoEwald2D
 
-using SpecialFunctions, LinearAlgebra, Enzyme, GaussQuadrature, ExTinyMD, ForwardDiff, Distributions, Random, StatsBase
+using SpecialFunctions, LinearAlgebra, Enzyme, GaussQuadrature, ExTinyMD, ForwardDiff, Distributions, Random, StatsBase, Distributed
 
 export SoePara, SoePara4, SoePara8, SoePara16, soerfc, soerf, soexp, soexp_mul_erfc
 export AdPara, IterPara, revise_adpara!, update_iterpara!, revise_interaction!, update_iterpara_z!

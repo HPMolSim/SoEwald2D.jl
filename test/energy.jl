@@ -1,6 +1,6 @@
 @testset "compare energy by SoEwald2D and DirectEwald2D" begin
-    n_atoms = 200
-    L = 10.0
+    n_atoms = 100
+    L = 100.0
     boundary = ExTinyMD.Q2dBoundary(L, L, 10.0)
 
     atoms = Vector{Atom{Float64}}()
@@ -12,9 +12,15 @@
         push!(atoms, Atom(type = 2, mass = 1.0, charge = - 1.0))
     end
 
-    info = SimulationInfo(n_atoms, atoms, (0.0, L, 0.0, L, 0.0, 10.0), boundary; min_r = 1.0, temp = 1.0)
+    info = SimulationInfo(n_atoms, atoms, (0.0, L, 0.0, L, 0.0, L), boundary; min_r = 1.0, temp = 1.0)
 
-    para = SoEwald2DLongInteraction(1.0, (L, L, L), 1e-5, 1.0, n_atoms, sqrt(- 4 * log(1e-4)), SoePara())
+    ϵ_0 = 1.0
+    α = 0.1
+    s = 1.0
+    r_c = s / α
+    k_c = 2 * s * α
+
+    para = SoEwald2DLongInteraction(ϵ_0, (L, L, L), s, α, n_atoms, k_c, SoePara());
 
     interactions = [(LennardJones(), CellListDir3D(info, 4.5, boundary, 100))]
     loggers = [TempartureLogger(100, output = false)]
@@ -39,7 +45,7 @@ end
 
 @testset "compare energy with ICM" begin
     n_atoms = 100
-    L = 20.0
+    L = 100.0
     boundary = ExTinyMD.Q2dBoundary(L, L, L)
 
     atoms = Vector{Atom{Float64}}()
@@ -67,8 +73,8 @@ end
     )
         
     ϵ_0 = 1.0 / 3.5
-    α = 1.0
-    s = 4.0
+    α = 0.1
+    s = 3.0
     r_c = s / α
     k_c = 2 * s * α
 

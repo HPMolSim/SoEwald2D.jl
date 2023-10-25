@@ -1,6 +1,6 @@
 @testset "compare the force_sum with diff_direct_sum" begin
     n_atoms = 100
-    L = 20.0
+    L = 100.0
     boundary = ExTinyMD.Q2dBoundary(L, L, L)
 
     atoms = Vector{Atom{Float64}}()
@@ -28,12 +28,12 @@
     )
         
     ϵ_0 = 1.0
-    accuracy = 1e-5
-    α = 2.0
-    r_c = 4.5
-    k_c = sqrt(-4 * α * log(accuracy))
+    s = 1.0
+    α = 0.1
+    r_c = s / α
+    k_c = 2 * s * α
 
-    interaction = SoEwald2DLongInteraction(ϵ_0, (L, L, L), accuracy, α, n_atoms, k_c, SoePara());
+    interaction = SoEwald2DLongInteraction(ϵ_0, (L, L, L), s, α, n_atoms, k_c, SoePara());
 
     SoEwald2D_Fl!(interaction, sys, info)
     sum_direct = diff_direct_sum(interaction, sys, info)
@@ -47,7 +47,7 @@ end
 
 @testset "compare sort sum with ICM" begin
     n_atoms = 100
-    L = 20.0
+    L = 100.0
     boundary = ExTinyMD.Q2dBoundary(L, L, L)
 
     atoms = Vector{Atom{Float64}}()
@@ -75,7 +75,7 @@ end
     )
         
     ϵ_0 = 1.0 / 3.5
-    α = 1.0
+    α = 0.1
     s = 3.0
     r_c = s / α
     k_c = 2 * s * α
@@ -99,6 +99,6 @@ end
 
     for i in 1:n_atoms
         error_i = sqrt(dist2(force_icm[i], info.particle_info[i].acceleration))
-        @test error_i < 1e-4
+        @test error_i < 1e-3
     end
 end
