@@ -138,15 +138,12 @@ function energy_sum!(q::Array{T}, x::Array{T}, y::Array{T}, z::Array{T}, n_atoms
     U_k0 = - energy_sum_k0(q, z, n_atoms, α, soepara, iterpara) * π / (L[1] * L[2])
 
     if rbm == false
-        for i in 1:size(k_set, 1)
-            K = k_set[i]
-            k = K[3]
-            energy += exp(- k^2 / (4 * α^2)) * energy_sum_k(K, q, x, y, z, n_atoms, α, soepara, iterpara)
+        energy = @distributed (+) for i in 1:size(k_set, 1)
+            exp(- k_set[i][3]^2 / (4 * α^2)) * energy_sum_k(k_set[i], q, x, y, z, n_atoms, α, soepara, iterpara)
         end
     else
-        for i in 1:rbm_p
-            K = k_set[rand(1:size(k_set, 1))]
-            energy += P / rbm_p * energy_sum_k(K, q, x, y, z, n_atoms, α, soepara, iterpara)
+        energy = @distributed (+) for i in 1:rbm_p
+            P / rbm_p * energy_sum_k(k_set[rand(1:end)], q, x, y, z, n_atoms, α, soepara, iterpara)
         end
     end
 

@@ -1,6 +1,33 @@
 Base.real(x::Point) = Point(real.(x.coo))
 
-function ad_energy_sum!(interaction::SoEwald2DLongInteraction{T}) where{T}
+function energy_sum_k!(K::Tuple{T, T, T}, q::Array{T}, x::Array{T}, y::Array{T}, z::Array{T}, n_atoms::Int64, α::T, soepara::SoePara{ComplexF64}, iterpara::IterPara, U::Array{T}) where{T<:Number}
+    U[1] = energy_sum_k(K, q, x, y, z, n_atoms, α, soepara, iterpara)
+    return nothing
+end
+
+function energy_sum_k0!(q::Array{T}, z::Array{T}, n_atoms::Int64, α::T, soepara::SoePara{ComplexF64}, iterpara::IterPara, U::Array{T}) where{T<:Number}
+    U[1] = energy_sum_k0(q, z, n_atoms, α, soepara, iterpara)
+    return nothing
+end
+
+function force_sum_k(K::Tuple{T, T, T}, q::Array{T}, x::Array{T}, y::Array{T}, z::Array{T}, n_atoms::Int64, α::T, soepara::SoePara{ComplexF64}, iterpara::IterPara, adpara::AdPara) where{T<:Number}
+
+    revise_adpara!(adpara, n_atoms)
+
+    autodiff(ReverseWithPrimal, energy_sum_k!, Const(K), Const(q), Duplicated(x, adpara.Fx), Duplicated(y, adpara.Fy), Duplicated(z, adpara.Fz), Const(n_atoms), Const(α), Const(soepara), Duplicated(iterpara, adpara.iterpara_t), Duplicated(adpara.U, adpara.dU))
+
+    return [adpara.Fx, adpara.Fy, adpara.Fz]
+end
+
+function force_sum_k0(q::Array{T}, z::Array{T}, n_atoms::Int64, α::T, soepara::SoePara{ComplexF64}, iterpara::IterPara, adpara::AdPara) where{T<:Number}
+
+    revise_adpara!(adpara, n_atoms)
+    autodiff(ReverseWithPrimal, energy_sum_k0!, Const(q), Duplicated(z, adpara.Fz), Const(n_atoms), Const(α), Const(soepara), Duplicated(iterpara, adpara.iterpara_t), Duplicated(adpara.U, adpara.dU))
+
+    return [adpara.Fx, adpara.Fy, adpara.Fz]
+end
+
+function force_sum(interaction::SoEwald2DLongInteraction{T}) where{T}
 
     iterpara = interaction.iterpara
     soepara = interaction.soepara
@@ -9,10 +36,35 @@ function ad_energy_sum!(interaction::SoEwald2DLongInteraction{T}) where{T}
     x = interaction.x
     y = interaction.y
     z = interaction.z
-    
-    autodiff(ReverseWithPrimal, energy_sum!, Const(q), Duplicated(x, adpara.Fx), Duplicated(y, adpara.Fy), Duplicated(z, adpara.Fz), Const(interaction.n_atoms), Const(interaction.ϵ_0), Const(interaction.L), Const(interaction.α), Const(soepara), Duplicated(iterpara, adpara.iterpara_t), Const(interaction.k_set), Const(interaction.rbm), Const(interaction.rbm_p), Const(interaction.P), Duplicated(adpara.U, adpara.dU))
 
-    return nothing
+    rbm = interaction.rbm
+    rbm_p = interaction.rbm_p
+    P = interaction.P
+
+    α = interaction.α
+    n_atoms = interaction.n_atoms
+    L = interaction.L
+    k_set = interaction.k_set
+    ϵ_0 = interaction.ϵ_0
+    
+    update_iterpara_z!(iterpara, z)
+
+    F_k0 = - force_sum_k0(q, z, n_atoms, α, soepara, iterpara, adpara) * π / (L[1] * L[2])
+
+    if rbm == false
+        F_k = @distributed (+) for i in 1:size(k_set, 1)
+            exp(- k_set[i][3]^2 / (4 * α^2)) * force_sum_k(k_set[i], q, x, y, z, n_atoms, α, soepara, iterpara, adpara)
+        end
+    else
+        F_k = @distributed (+) for i in 1:rbm_p
+            P / rbm_p * force_sum_k(k_set[rand(1:end)], q, x, y, z, n_atoms, α, soepara, iterpara, adpara)
+        end
+    end
+
+    F_k *= π / (2 * L[1] * L[2])
+    F_k .+= F_k0
+
+    return F_k / (4π * ϵ_0)
 end
 
 function SoEwald2D_Fl!(interaction::SoEwald2DLongInteraction{T}, sys::MDSys, info::SimulationInfo{T}) where{T<:Number}
@@ -21,10 +73,10 @@ function SoEwald2D_Fl!(interaction::SoEwald2DLongInteraction{T}, sys::MDSys, inf
     revise_adpara!(interaction.adpara, interaction.n_atoms)
     
     mass = interaction.mass
-    ad_energy_sum!(interaction)
+    Fx, Fy, Fz = force_sum(interaction)
 
     for i in 1:sys.n_atoms
-        info.particle_info[i].acceleration -= Point(interaction.adpara.Fx[i], interaction.adpara.Fy[i], interaction.adpara.Fz[i]) / (mass[i])
+        info.particle_info[i].acceleration -= Point(Fx[i], Fy[i], Fz[i]) / (mass[i])
     end
 
     return nothing 
