@@ -95,7 +95,7 @@ struct SoEwald2DLongInteraction{T} <: ExTinyMD.AbstractInteraction
     adpara::AdPara
 end
 
-function SoEwald2DLongInteraction(ϵ_0::T, L::NTuple{3, T}, s::T, α::T, n_atoms::Int64, k_c::T, soepara::SoePara{ComplexF64}; rbm::Bool = false, rbm_p::Int=0) where{T<:Number}
+function SoEwald2DLongInteraction(ϵ_0::T, L::NTuple{3, T}, s::T, α::T, n_atoms::Int64, k_c::T, soepara::SoePara{ComplexF64}; rbm::Bool = false, rbm_p::Int=0, set_size::Int = 5000) where{T<:Number}
 
     k_set = Vector{Tuple{T, T, T}}()
     if rbm == false
@@ -113,7 +113,7 @@ function SoEwald2DLongInteraction(ϵ_0::T, L::NTuple{3, T}, s::T, α::T, n_atoms
         end
         P = zero(T)
     else
-        k_set, P = generate_K_set(α, L)
+        k_set, P = generate_K_set(α, L, set_size)
     end
 
     q = zeros(T, n_atoms)
@@ -154,16 +154,8 @@ function revise_interaction!(interaction::SoEwald2DLongInteraction{T}, sys::MDSy
     return nothing
 end
 
-function SoEwald2D_init(ϵ_0::T, L::NTuple{3, T}, s::T, n_atoms::Int64, soepara::SoePara{ComplexF64}; rbm::Bool = false, rbm_p::Int=0) where{T <: Number}
-    if rbm == false
-        α = n_atoms^(0.4) / (L[1]^2 * L[2]^2 * L[3])^(0.4)
-        r_c = s / sqrt(α)
-        k_c = 2 * s * sqrt(α)
-    else
-        α = n_atoms^(2.0/3.0) / (L[1] * L[2] * L[3])^(2.0/3.0)
-        r_c = s / sqrt(α)
-        k_c = zero(T)
-    end
-
-    return SoEwald2DShortInteraction(ϵ_0, L, s, α, n_atoms, r_c), SoEwald2DLongInteraction(ϵ_0, L, s, α, n_atoms, k_c, soepara; rbm = rbm, rbm_p = rbm_p)
+function SoEwald2D_init(ϵ_0::T, L::NTuple{3, T}, s::T, α::T, soepara::SoePara{ComplexF64}; rbm::Bool = false, rbm_p::Int=0, set_size::Int = 5000) where{T <: Number}
+    r_c = s / α
+    k_c = 2 * s * α
+    return SoEwald2DShortInteraction(ϵ_0, L, s, α, n_atoms, r_c), SoEwald2DLongInteraction(ϵ_0, L, s, α, n_atoms, k_c, soepara; rbm = rbm, rbm_p = rbm_p, set_size = set_size)
 end
