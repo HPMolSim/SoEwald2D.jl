@@ -27,6 +27,14 @@ function force_sum_k0(q::Array{T}, z::Array{T}, n_atoms::Int64, α::T, soepara::
     return [adpara.Fx, adpara.Fy, adpara.Fz]
 end
 
+function force_sum_kset(K_set::Vector{Tuple{T, T, T}}, q::Array{T}, x::Array{T}, y::Array{T}, z::Array{T}, n_atoms::Int64, α::T, soepara::SoePara{ComplexF64}, iterpara::IterPara, adpara::AdPara) where{T<:Number}
+    force = [zeros(T, n_atoms) for i in 1:3]
+    for i in 1:size(K_set, 1)
+        force += force_sum_k(K_set[i], q, x, y, z, n_atoms, α, soepara, iterpara, adpara)
+    end
+    return force
+end
+
 function force_sum(interaction::SoEwald2DLongInteraction{T}) where{T}
 
     iterpara = interaction.iterpara
@@ -56,8 +64,10 @@ function force_sum(interaction::SoEwald2DLongInteraction{T}) where{T}
             exp(- k_set[i][3]^2 / (4 * α^2)) * force_sum_k(k_set[i], q, x, y, z, n_atoms, α, soepara, iterpara, adpara)
         end
     else
-        F_k = @distributed (+) for i in 1:rbm_p
-            P / rbm_p * force_sum_k(k_set[rand(1:end)], q, x, y, z, n_atoms, α, soepara, iterpara, adpara)
+        rbm_k_set = [k_set[rand(1:end)] for i in 1:rbm_p]
+        div_k_set = vec_divider(rbm_k_set, nprocs() - 1)
+        F_k = @distributed (+) for div_k in div_k_set
+            P / rbm_p * force_sum_kset(div_k, q, x, y, z, n_atoms, α, soepara, iterpara, adpara)
         end
     end
 
