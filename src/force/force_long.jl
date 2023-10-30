@@ -35,6 +35,14 @@ function force_sum_kset(K_set::Vector{Tuple{T, T, T}}, q::Array{T}, x::Array{T},
     return force
 end
 
+function force_sum_kset_exact(K_set::Vector{Tuple{T, T, T}}, q::Array{T}, x::Array{T}, y::Array{T}, z::Array{T}, n_atoms::Int64, α::T, soepara::SoePara{ComplexF64}, iterpara::IterPara, adpara::AdPara) where{T<:Number}
+    force = [zeros(T, n_atoms) for i in 1:3]
+    for i in 1:size(K_set, 1)
+        force += exp(- K_set[i][3]^2 / (4 * α^2)) * force_sum_k(K_set[i], q, x, y, z, n_atoms, α, soepara, iterpara, adpara)
+    end
+    return force
+end
+
 function force_sum(interaction::SoEwald2DLongInteraction{T}) where{T}
 
     iterpara = interaction.iterpara
@@ -60,9 +68,7 @@ function force_sum(interaction::SoEwald2DLongInteraction{T}) where{T}
     F_k0 = - force_sum_k0(q, z, n_atoms, α, soepara, iterpara, adpara) * π / (L[1] * L[2])
 
     if rbm == false
-        F_k = @distributed (+) for i in 1:size(k_set, 1)
-            exp(- k_set[i][3]^2 / (4 * α^2)) * force_sum_k(k_set[i], q, x, y, z, n_atoms, α, soepara, iterpara, adpara)
-        end
+        F_k = force_sum_kset_exact(k_set, q, x, y, z, n_atoms, α, soepara, iterpara, adpara)
     else
         rbm_k_set = [k_set[rand(1:end)] for i in 1:rbm_p]
         div_k_set = vec_divider(rbm_k_set, nprocs() - 1)

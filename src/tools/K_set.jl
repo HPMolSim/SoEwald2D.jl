@@ -39,7 +39,7 @@ Used for parallel computing.
 """
 function vec_divider(a::Vector{T}, n::Int64) where{T}
     if n == 0
-        @warn "Input n is 0, automatically set to 1."
+        # @warn "Input n is 0, automatically set to 1."
         n = 1
     end
     da = [Vector{T}() for i in 1:min(n, length(a))]
