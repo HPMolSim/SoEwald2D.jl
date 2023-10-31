@@ -130,31 +130,32 @@ function energy_sum_k0(q::Array{T}, z::Array{T}, n_atoms::Int64, α::T, soepara:
     return real(sum_k0)
 end
 
-function energy_sum_kset(K_set::Vector{Tuple{T, T, T}}, q::Array{T}, x::Array{T}, y::Array{T}, z::Array{T}, n_atoms::Int64, α::T, soepara::SoePara{ComplexF64}, iterpara::IterPara) where{T<:Number}
-    energy = zero(T)
-    for i in 1:size(K_set, 1)
-        energy += energy_sum_k(K_set[i], q, x, y, z, n_atoms, α, soepara, iterpara)
-    end
-    return energy
-end
-
-function energy_sum!(q::Array{T}, x::Array{T}, y::Array{T}, z::Array{T}, n_atoms::Int64, ϵ_0::T, L::NTuple{3, T}, α::T, soepara::SoePara, iterpara::IterPara, k_set::Array{NTuple{3, T}}, rbm::Bool, rbm_p::Int, P::T, U::Array{T}) where{T<:Number}
+function energy_sum!(q::Array{T}, x::Array{T}, y::Array{T}, z::Array{T}, n_atoms::Int64, ϵ_0::T, L::NTuple{3, T}, α::T, soepara::SoePara, iterpara::IterPara, k_set::Array{NTuple{3, T}}, rbm::Bool, rbm_p::Int, P::T, parallel::Bool, U::Array{T}) where{T<:Number}
     energy = zero(T)
 
     update_iterpara_z!(iterpara, z)
 
     U_k0 = - energy_sum_k0(q, z, n_atoms, α, soepara, iterpara) * π / (L[1] * L[2])
 
-    # distributed will not be used for rbm == false
-    if rbm == false
-        for i in 1:size(k_set, 1)
-            energy += exp(- k_set[i][3]^2 / (4 * α^2)) * energy_sum_k(k_set[i], q, x, y, z, n_atoms, α, soepara, iterpara)
+    if parallel
+        if rbm == false
+            energy = @distributed (+) for i in 1:size(k_set, 1)
+                exp(- k_set[i][3]^2 / (4 * α^2)) * energy_sum_k(k_set[i], q, x, y, z, n_atoms, α, soepara, iterpara)
+            end
+        else
+            energy = @distributed (+) for i in 1:rbm_p
+                P / rbm_p * energy_sum_k(k_set[rand(1:end)], q, x, y, z, n_atoms, α, soepara, iterpara)
+            end
         end
     else
-        rbm_k_set = [k_set[rand(1:end)] for i in 1:rbm_p]
-        div_k_set = vec_divider(rbm_k_set, nprocs() - 1)
-        energy = @distributed (+) for div_k in div_k_set
-            P / rbm_p * energy_sum_kset(div_k, q, x, y, z, n_atoms, α, soepara, iterpara)
+        if rbm == false
+            for i in 1:size(k_set, 1)
+                energy += exp(- k_set[i][3]^2 / (4 * α^2)) * energy_sum_k(k_set[i], q, x, y, z, n_atoms, α, soepara, iterpara)
+            end
+        else
+            for i in 1:rbm_p
+                energy += P / rbm_p * energy_sum_k(k_set[rand(1:end)], q, x, y, z, n_atoms, α, soepara, iterpara)
+            end
         end
     end
 
@@ -170,7 +171,7 @@ function SoEwald2D_El(interaction::SoEwald2DLongInteraction{T}, sys::MDSys, info
     U = [zero(T)]
 
     revise_interaction!(interaction, sys, info)
-    energy_sum!(interaction.q, interaction.x, interaction.y, interaction.z, interaction.n_atoms, interaction.ϵ_0, interaction.L, interaction.α, interaction.soepara, interaction.iterpara, interaction.k_set, interaction.rbm, interaction.rbm_p, interaction.P, U)
+    energy_sum!(interaction.q, interaction.x, interaction.y, interaction.z, interaction.n_atoms, interaction.ϵ_0, interaction.L, interaction.α, interaction.soepara, interaction.iterpara, interaction.k_set, interaction.rbm, interaction.rbm_p, interaction.P, interaction.parallel, U)
     
     return U[1]
 end

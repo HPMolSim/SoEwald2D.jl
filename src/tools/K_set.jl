@@ -29,26 +29,3 @@ function generate_K_set(α::T, L::NTuple{3, T}, set_size::Int) where{T <: Number
 
     return K_set, sum_K
 end
-
-"""
-function vec_divider(a::Vector{T}, n::Int64) 
-Divide an array into n parts with almost equal length, if n > length(a);
-else it will result length(a) parts.
-Used for parallel computing.
-
-"""
-function vec_divider(a::Vector{T}, n::Int64) where{T}
-    if n == 0
-        # @warn "Input n is 0, automatically set to 1."
-        n = 1
-    end
-    da = [Vector{T}() for i in 1:min(n, length(a))]
-    for i in 1:length(a)
-        id = i % n
-        if id == 0
-            id = n
-        end
-        push!(da[id], a[i])
-    end
-    return da
-end
