@@ -95,9 +95,10 @@ struct SoEwald2DLongInteraction{T} <: ExTinyMD.AbstractInteraction
     adpara::AdPara
 
     parallel::Bool
+    rng
 end
 
-function SoEwald2DLongInteraction(ϵ_0::T, L::NTuple{3, T}, s::T, α::T, n_atoms::Int64, k_c::T, soepara::SoePara{ComplexF64}; rbm::Bool = false, rbm_p::Int=0, set_size::Int = 5000, parallel::Bool = true) where{T<:Number}
+function SoEwald2DLongInteraction(ϵ_0::T, L::NTuple{3, T}, s::T, α::T, n_atoms::Int64, k_c::T, soepara::SoePara{ComplexF64}; rbm::Bool = false, rbm_p::Int=0, set_size::Int = 5000, parallel::Bool = true, rng = MersenneTwister(114514)) where{T<:Number}
 
     k_set = Vector{Tuple{T, T, T}}()
     if rbm == false
@@ -128,7 +129,7 @@ function SoEwald2DLongInteraction(ϵ_0::T, L::NTuple{3, T}, s::T, α::T, n_atoms
     iterpara = IterPara(n_atoms)
     adpara = AdPara(n_atoms)
 
-    return SoEwald2DLongInteraction(ϵ_0, L, s, α, n_atoms, k_c, k_set, soepara, rbm, rbm_p, P, q, mass, x, y, z, acceleration, iterpara, adpara, parallel)
+    return SoEwald2DLongInteraction(ϵ_0, L, s, α, n_atoms, k_c, k_set, soepara, rbm, rbm_p, P, q, mass, x, y, z, acceleration, iterpara, adpara, parallel, rng)
 end
 
 struct SoEwald2DShortInteraction{T} <: ExTinyMD.AbstractInteraction
