@@ -61,7 +61,7 @@ function force_sum(interaction::SoEwald2DLongInteraction{T}) where{T}
             end
         else
             F_k = @distributed (+) for i in 1:rbm_p
-                P / rbm_p * force_sum_k(k_set[rand(rng, 1:end)], q, x, y, z, n_atoms, α, soepara, iterpara, adpara)
+                P / rbm_p * force_sum_k(k_set[rand(1:end)], q, x, y, z, n_atoms, α, soepara, iterpara, adpara)
             end
         end
     else
@@ -71,7 +71,7 @@ function force_sum(interaction::SoEwald2DLongInteraction{T}) where{T}
             end
         else
             for i in 1:rbm_p
-                F_k += P / rbm_p * force_sum_k(k_set[rng, rand(1:end)], q, x, y, z, n_atoms, α, soepara, iterpara, adpara)
+                F_k += P / rbm_p * force_sum_k(k_set[rand(1:end)], q, x, y, z, n_atoms, α, soepara, iterpara, adpara)
             end
         end
     end

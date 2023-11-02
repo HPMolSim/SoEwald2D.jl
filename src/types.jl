@@ -98,7 +98,7 @@ struct SoEwald2DLongInteraction{T} <: ExTinyMD.AbstractInteraction
     rng
 end
 
-function SoEwald2DLongInteraction(ϵ_0::T, L::NTuple{3, T}, s::T, α::T, n_atoms::Int64, k_c::T, soepara::SoePara{ComplexF64}; rbm::Bool = false, rbm_p::Int=0, set_size::Int = 5000, parallel::Bool = true, rng = MersenneTwister(114514)) where{T<:Number}
+function SoEwald2DLongInteraction(ϵ_0::T, L::NTuple{3, T}, s::T, α::T, n_atoms::Int64, k_c::T, soepara::SoePara{ComplexF64}; rbm::Bool = false, rbm_p::Int=0, set_size::Int = 5000, parallel::Bool = true, rng = MersenneTwister(123)) where{T<:Number}
 
     k_set = Vector{Tuple{T, T, T}}()
     if rbm == false
