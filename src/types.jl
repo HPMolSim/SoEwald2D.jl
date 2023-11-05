@@ -84,6 +84,7 @@ struct SoEwald2DLongInteraction{T} <: ExTinyMD.AbstractInteraction
     rbm::Bool # whether to use random batch method
     rbm_p::Int
     P::T
+    indice::Vector{Int}
 
     q::Vector{T}
     mass::Vector{T}
@@ -119,6 +120,8 @@ function SoEwald2DLongInteraction(ϵ_0::T, L::NTuple{3, T}, s::T, α::T, n_atoms
         k_set, P = generate_K_set(α, L, set_size)
     end
 
+    indice = zeros(Int, rbm_p)
+
     q = zeros(T, n_atoms)
     mass = zeros(T, n_atoms)
     x = zeros(T, n_atoms)
@@ -129,7 +132,7 @@ function SoEwald2DLongInteraction(ϵ_0::T, L::NTuple{3, T}, s::T, α::T, n_atoms
     iterpara = IterPara(n_atoms)
     adpara = AdPara(n_atoms)
 
-    return SoEwald2DLongInteraction(ϵ_0, L, s, α, n_atoms, k_c, k_set, soepara, rbm, rbm_p, P, q, mass, x, y, z, acceleration, iterpara, adpara, parallel, rng)
+    return SoEwald2DLongInteraction(ϵ_0, L, s, α, n_atoms, k_c, k_set, soepara, rbm, rbm_p, P, indice, q, mass, x, y, z, acceleration, iterpara, adpara, parallel, rng)
 end
 
 struct SoEwald2DShortInteraction{T} <: ExTinyMD.AbstractInteraction

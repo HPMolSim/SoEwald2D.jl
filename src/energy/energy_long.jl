@@ -143,8 +143,9 @@ function energy_sum!(q::Array{T}, x::Array{T}, y::Array{T}, z::Array{T}, n_atoms
                 exp(- k[3]^2 / (4 * α^2)) * energy_sum_k(k, q, x, y, z, n_atoms, α, soepara, iterpara)
             end
         else
-            energy = @distributed (+) for i in 1:rbm_p
-                P / rbm_p * energy_sum_k(k_set[rand(1:end)], q, x, y, z, n_atoms, α, soepara, iterpara)
+            indice = rand!(rng, indice, 1:size(k_set, 1))
+            energy = @distributed (+) for i in indice
+                P / rbm_p * energy_sum_k(k_set[i], q, x, y, z, n_atoms, α, soepara, iterpara)
             end
         end
     else
@@ -153,8 +154,9 @@ function energy_sum!(q::Array{T}, x::Array{T}, y::Array{T}, z::Array{T}, n_atoms
                 energy += exp(- k_set[i][3]^2 / (4 * α^2)) * energy_sum_k(k_set[i], q, x, y, z, n_atoms, α, soepara, iterpara)
             end
         else
-            for i in 1:rbm_p
-                energy += P / rbm_p * energy_sum_k(k_set[rand(1:end)], q, x, y, z, n_atoms, α, soepara, iterpara)
+            indice = rand!(rng, indice, 1:size(k_set, 1))
+            for i in indice
+                energy += P / rbm_p * energy_sum_k(k_set[i], q, x, y, z, n_atoms, α, soepara, iterpara)
             end
         end
     end
