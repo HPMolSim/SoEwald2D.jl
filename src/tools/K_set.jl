@@ -23,7 +23,6 @@ function generate_K_set(α::T, L::NTuple{3, T}, k_c::T) where{T <: Number}
             end
         end
     end
-    Prob ./= T(sum_K)
 
     return K_set, T(sum_K), ProbabilityWeights(Prob)
 end
