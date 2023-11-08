@@ -8,7 +8,7 @@ function generate_K_set(α::T, L::NTuple{3, T}, k_c::T, set_size::Int) where{T <
     K_set = Vector{NTuple{3, T}}()
     Prob = Vector{T}()
 
-    sum_K = zero(T)
+    sum_K = big(0.0)
 
     for m_x in - mx_max : mx_max
         for m_y in - my_max : my_max
@@ -19,12 +19,12 @@ function generate_K_set(α::T, L::NTuple{3, T}, k_c::T, set_size::Int) where{T <
                 push!(K_set, (k_x, k_y, k))
                 prob = exp(-k^2 / (4 * α^2))
                 push!(Prob, prob)
-                sum_K += prob
+                sum_K += big(prob)
             end
         end
     end
-    Prob ./= sum_K
+    Prob ./= T(sum_K)
     K_set = sample(K_set, ProbabilityWeights(Prob), set_size)
 
-    return K_set, sum_K
+    return K_set, T(sum_K)
 end
