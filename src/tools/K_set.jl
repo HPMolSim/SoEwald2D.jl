@@ -1,7 +1,6 @@
-function generate_K_set(α::T, L::NTuple{3, T}, set_size::Int) where{T <: Number}
+function generate_K_set(α::T, L::NTuple{3, T}, k_c::T, set_size::Int) where{T <: Number}
 
     L_x, L_y, L_z = L
-    k_c = sqrt(64 * α^2 * log(10)) + 4π / sqrt(L_x * L_y)
 
     mx_max = ceil(Int, k_c * L_x / 2π) + 1
     my_max = ceil(Int, k_c * L_y / 2π) + 1
@@ -16,7 +15,7 @@ function generate_K_set(α::T, L::NTuple{3, T}, set_size::Int) where{T <: Number
             k_x = m_x * 2π / L_x
             k_y = m_y * 2π / L_y
             k = sqrt(k_x^2 + k_y^2)
-            if k != 0 && k < k_c
+            if 0 < k <= k_c
                 push!(K_set, (k_x, k_y, k))
                 prob = exp(-k^2 / (4 * α^2))
                 push!(Prob, prob)

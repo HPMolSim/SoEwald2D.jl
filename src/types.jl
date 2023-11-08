@@ -117,7 +117,7 @@ function SoEwald2DLongInteraction(ϵ_0::T, L::NTuple{3, T}, s::T, α::T, n_atoms
         end
         P = zero(T)
     else
-        k_set, P = generate_K_set(α, L, set_size)
+        k_set, P = generate_K_set(α, L, k_c, set_size)
     end
 
     indice = zeros(Int, rbm_p)

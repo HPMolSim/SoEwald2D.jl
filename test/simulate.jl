@@ -31,7 +31,7 @@
         (interaction_short, celllist),
         (interaction_long, no_finder)
         ]
-    loggers = [TempartureLogger(100, output = false), TrajectionLogger(step = 100, output = false)]
+    loggers = [TemperatureLogger(100, output = false), TrajectionLogger(step = 100, output = false)]
     simulator = VerletProcess(dt = 0.001, thermostat = AndersenThermoStat(1.0, 0.05))
 
     sys = MDSys(
