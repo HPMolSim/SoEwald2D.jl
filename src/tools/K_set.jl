@@ -1,4 +1,4 @@
-function generate_K_set(α::T, L::NTuple{3, T}, k_c::T, set_size::Int) where{T <: Number}
+function generate_K_set(α::T, L::NTuple{3, T}, k_c::T) where{T <: Number}
 
     L_x, L_y, L_z = L
 
@@ -24,7 +24,6 @@ function generate_K_set(α::T, L::NTuple{3, T}, k_c::T, set_size::Int) where{T <
         end
     end
     Prob ./= T(sum_K)
-    K_set = sample(K_set, ProbabilityWeights(Prob), set_size)
 
-    return K_set, T(sum_K)
+    return K_set, T(sum_K), ProbabilityWeights(Prob)
 end

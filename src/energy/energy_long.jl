@@ -130,7 +130,7 @@ function energy_sum_k0(q::Array{T}, z::Array{T}, n_atoms::Int64, α::T, soepara:
     return real(sum_k0)
 end
 
-function energy_sum!(q::Array{T}, x::Array{T}, y::Array{T}, z::Array{T}, n_atoms::Int64, ϵ_0::T, L::NTuple{3, T}, α::T, soepara::SoePara, iterpara::IterPara, k_set::Array{NTuple{3, T}}, rbm::Bool, rbm_p::Int, P::T, parallel::Bool, rng, indice::Vector{Int}, U::Array{T}) where{T<:Number}
+function energy_sum!(q::Array{T}, x::Array{T}, y::Array{T}, z::Array{T}, n_atoms::Int64, ϵ_0::T, L::NTuple{3, T}, α::T, soepara::SoePara, iterpara::IterPara, k_set::Array{NTuple{3, T}}, rbm::Bool, rbm_p::Int, P::T, prob::ProbabilityWeights{T}, parallel::Bool, rng, U::Array{T}) where{T<:Number}
     energy = zero(T)
 
     update_iterpara_z!(iterpara, z)
@@ -143,9 +143,9 @@ function energy_sum!(q::Array{T}, x::Array{T}, y::Array{T}, z::Array{T}, n_atoms
                 exp(- k[3]^2 / (4 * α^2)) * energy_sum_k(k, q, x, y, z, n_atoms, α, soepara, iterpara)
             end
         else
-            indice = rand!(rng, indice, 1:size(k_set, 1))
-            energy = @distributed (+) for i in indice
-                P / rbm_p * energy_sum_k(k_set[i], q, x, y, z, n_atoms, α, soepara, iterpara)
+            random_k = sample(rng, k_set, prob, rbm_p)
+            energy = @distributed (+) for i in 1:rbm_p
+                P / rbm_p * energy_sum_k(random_k[i], q, x, y, z, n_atoms, α, soepara, iterpara)
             end
         end
     else
@@ -154,9 +154,9 @@ function energy_sum!(q::Array{T}, x::Array{T}, y::Array{T}, z::Array{T}, n_atoms
                 energy += exp(- k_set[i][3]^2 / (4 * α^2)) * energy_sum_k(k_set[i], q, x, y, z, n_atoms, α, soepara, iterpara)
             end
         else
-            indice = rand!(rng, indice, 1:size(k_set, 1))
-            for i in indice
-                energy += P / rbm_p * energy_sum_k(k_set[i], q, x, y, z, n_atoms, α, soepara, iterpara)
+            random_k = sample(rng, k_set, prob, rbm_p)
+            for i in 1:rbm_p
+                energy += P / rbm_p * energy_sum_k(random_k[i], q, x, y, z, n_atoms, α, soepara, iterpara)
             end
         end
     end
@@ -173,7 +173,7 @@ function SoEwald2D_El(interaction::SoEwald2DLongInteraction{T}, sys::MDSys, info
     U = [zero(T)]
 
     revise_interaction!(interaction, sys, info)
-    energy_sum!(interaction.q, interaction.x, interaction.y, interaction.z, interaction.n_atoms, interaction.ϵ_0, interaction.L, interaction.α, interaction.soepara, interaction.iterpara, interaction.k_set, interaction.rbm, interaction.rbm_p, interaction.P, interaction.parallel, interaction.rng, interaction.indice, U)
+    energy_sum!(interaction.q, interaction.x, interaction.y, interaction.z, interaction.n_atoms, interaction.ϵ_0, interaction.L, interaction.α, interaction.soepara, interaction.iterpara, interaction.k_set, interaction.rbm, interaction.rbm_p, interaction.P, interaction.prob, interaction.parallel, interaction.rng, U)
     
     return U[1]
 end

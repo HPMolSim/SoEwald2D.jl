@@ -40,7 +40,7 @@ function force_sum(interaction::SoEwald2DLongInteraction{T}) where{T}
     rbm = interaction.rbm
     rbm_p = interaction.rbm_p
     P = interaction.P
-    indice = interaction.indice
+    prob = interaction.prob
 
     α = interaction.α
     n_atoms = interaction.n_atoms
@@ -61,9 +61,9 @@ function force_sum(interaction::SoEwald2DLongInteraction{T}) where{T}
                 exp(- k[3]^2 / (4 * α^2)) * force_sum_k(k, q, x, y, z, n_atoms, α, soepara, iterpara, adpara)
             end
         else
-            indice = rand!(rng, indice, 1:size(k_set, 1))
-            F_k = @distributed (+) for i in indice
-                P / rbm_p * force_sum_k(k_set[i], q, x, y, z, n_atoms, α, soepara, iterpara, adpara)
+            random_k = sample(rng, k_set, prob, rbm_p)
+            F_k = @distributed (+) for i in 1:rbm_p
+                P / rbm_p * force_sum_k(random_k[i], q, x, y, z, n_atoms, α, soepara, iterpara, adpara)
             end
         end
     else
@@ -72,9 +72,9 @@ function force_sum(interaction::SoEwald2DLongInteraction{T}) where{T}
                 F_k += exp(- k[3]^2 / (4 * α^2)) * force_sum_k(k, q, x, y, z, n_atoms, α, soepara, iterpara, adpara)
             end
         else
-            indice = rand!(rng, indice, 1:size(k_set, 1))
+            random_k = sample(rng, k_set, prob, rbm_p)
             for i in indice
-                F_k += P / rbm_p * force_sum_k(k_set[i], q, x, y, z, n_atoms, α, soepara, iterpara, adpara)
+                F_k += P / rbm_p * force_sum_k(random_k[i], q, x, y, z, n_atoms, α, soepara, iterpara, adpara)
             end
         end
     end

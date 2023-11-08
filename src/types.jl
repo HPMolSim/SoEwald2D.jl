@@ -84,6 +84,7 @@ struct SoEwald2DLongInteraction{T} <: ExTinyMD.AbstractInteraction
     rbm::Bool # whether to use random batch method
     rbm_p::Int
     P::T
+    prob::ProbabilityWeights{T}
     indice::Vector{Int}
 
     q::Vector{T}
@@ -99,7 +100,7 @@ struct SoEwald2DLongInteraction{T} <: ExTinyMD.AbstractInteraction
     rng
 end
 
-function SoEwald2DLongInteraction(ϵ_0::T, L::NTuple{3, T}, s::T, α::T, n_atoms::Int64, k_c::T, soepara::SoePara{ComplexF64}; rbm::Bool = false, rbm_p::Int=0, set_size::Int = 5000, parallel::Bool = true, rng = MersenneTwister(123)) where{T<:Number}
+function SoEwald2DLongInteraction(ϵ_0::T, L::NTuple{3, T}, s::T, α::T, n_atoms::Int64, k_c::T, soepara::SoePara{ComplexF64}; rbm::Bool = false, rbm_p::Int=0, parallel::Bool = true, rng = MersenneTwister(123)) where{T<:Number}
 
     k_set = Vector{Tuple{T, T, T}}()
     if rbm == false
@@ -116,8 +117,9 @@ function SoEwald2DLongInteraction(ϵ_0::T, L::NTuple{3, T}, s::T, α::T, n_atoms
             end
         end
         P = zero(T)
+        prob = ProbabilityWeights([zero(T)])
     else
-        k_set, P = generate_K_set(α, L, k_c, set_size)
+        k_set, P, prob = generate_K_set(α, L, k_c)
     end
 
     indice = zeros(Int, rbm_p)
@@ -132,7 +134,7 @@ function SoEwald2DLongInteraction(ϵ_0::T, L::NTuple{3, T}, s::T, α::T, n_atoms
     iterpara = IterPara(n_atoms)
     adpara = AdPara(n_atoms)
 
-    return SoEwald2DLongInteraction(ϵ_0, L, s, α, n_atoms, k_c, k_set, soepara, rbm, rbm_p, P, indice, q, mass, x, y, z, acceleration, iterpara, adpara, parallel, rng)
+    return SoEwald2DLongInteraction(ϵ_0, L, s, α, n_atoms, k_c, k_set, soepara, rbm, rbm_p, P, prob, indice, q, mass, x, y, z, acceleration, iterpara, adpara, parallel, rng)
 end
 
 struct SoEwald2DShortInteraction{T} <: ExTinyMD.AbstractInteraction
@@ -160,8 +162,8 @@ function revise_interaction!(interaction::SoEwald2DLongInteraction{T}, sys::MDSy
     return nothing
 end
 
-function SoEwald2D_init(ϵ_0::T, L::NTuple{3, T}, s::T, α::T, soepara::SoePara{ComplexF64}; rbm::Bool = false, rbm_p::Int=0, set_size::Int = 5000, parallel::Bool = true) where{T <: Number}
+function SoEwald2D_init(ϵ_0::T, L::NTuple{3, T}, s::T, α::T, soepara::SoePara{ComplexF64}; rbm::Bool = false, rbm_p::Int=0, parallel::Bool = true) where{T <: Number}
     r_c = s / α
     k_c = 2 * s * α
-    return SoEwald2DShortInteraction(ϵ_0, L, s, α, n_atoms, r_c), SoEwald2DLongInteraction(ϵ_0, L, s, α, n_atoms, k_c, soepara; rbm = rbm, rbm_p = rbm_p, set_size = set_size, parallel = parallel)
+    return SoEwald2DShortInteraction(ϵ_0, L, s, α, n_atoms, r_c), SoEwald2DLongInteraction(ϵ_0, L, s, α, n_atoms, k_c, soepara; rbm = rbm, rbm_p = rbm_p, parallel = parallel)
 end
