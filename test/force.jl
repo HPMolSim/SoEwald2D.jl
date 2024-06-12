@@ -80,7 +80,7 @@ end
     r_c = s / α
     k_c = 2 * s * α
 
-    no_finder = NoNeighborFinder(n_atoms);
+    no_finder = NoNeighborFinder();
     celllist = CellList3D(info, r_c, boundary, 1);
     interaction_long = SoEwald2DLongInteraction(ϵ_0, (L, L, L), s, α, n_atoms, k_c, SoePara());
     interaction_short = SoEwald2DShortInteraction(ϵ_0, (L, L, L), s, α, n_atoms, r_c);
@@ -91,11 +91,11 @@ end
 
     N_real = 200
     N_img = 0
-    ICM_sys = IcmSys((0.0, 0.0), (L, L, L), N_real, N_img)
+    sys_q2d = SysQ2D((0.0, 0.0), (L, L, L), N_real, N_img, ϵ = ϵ_0)
     coords = [p_info.position for p_info in info.particle_info]
     charge = [atoms[p_info.id].charge for p_info in info.particle_info]
-    ref_pos, ref_charge = IcmSysInit(ICM_sys, coords, charge)
-    force_icm = IcmForce(ICM_sys, coords, charge, ref_pos, ref_charge) ./ ϵ_0
+    ref_pos, ref_charge = SysQ2DInit(sys_q2d, coords, charge)
+    force_icm = Force_Q2D(sys_q2d, coords, charge, ref_pos, ref_charge)
 
     for i in 1:n_atoms
         error_i = sqrt(dist2(force_icm[i], info.particle_info[i].acceleration))
@@ -134,7 +134,7 @@ end
     r_c = s / α
     k_c = 2 * s * α
 
-    no_finder = NoNeighborFinder(n_atoms);
+    no_finder = NoNeighborFinder();
     celllist = CellList3D(info, r_c, boundary, 1);
     interaction_long = SoEwald2DLongInteraction(ϵ_0, (L, L, L), s, α, n_atoms, k_c, SoePara());
     interaction_short = SoEwald2DShortInteraction(ϵ_0, (L, L, L), s, α, n_atoms, r_c);
@@ -145,11 +145,11 @@ end
 
     N_real = 200
     N_img = 0
-    ICM_sys = IcmSys((0.0, 0.0), (L, L, L), N_real, N_img)
+    sys_q2d = SysQ2D((0.0, 0.0), (L, L, L), N_real, N_img, ϵ = ϵ_0)
     coords = [p_info.position for p_info in info.particle_info]
     charge = [atoms[p_info.id].charge for p_info in info.particle_info]
-    ref_pos, ref_charge = IcmSysInit(ICM_sys, coords, charge)
-    force_icm = IcmForce(ICM_sys, coords, charge, ref_pos, ref_charge) ./ ϵ_0
+    ref_pos, ref_charge = SysQ2DInit(sys_q2d, coords, charge)
+    force_icm = Force_Q2D(sys_q2d, coords, charge, ref_pos, ref_charge)
 
     for i in 1:n_atoms
         error_i = sqrt(dist2(force_icm[i], info.particle_info[i].acceleration))

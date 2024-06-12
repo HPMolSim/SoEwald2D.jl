@@ -1,6 +1,6 @@
-using SpecialFunctions, ExTinyMD, QuasiEwald, Distributed
+using SpecialFunctions, ExTinyMD, EwaldSummations
+using SoEwald2D
 using Test
-@everywhere using SoEwald2D
 
 @testset "SoEwald2D.jl" begin
     include("soerfc.jl")
