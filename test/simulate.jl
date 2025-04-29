@@ -20,7 +20,7 @@
     r_c = s / α
     k_c = 2 * s * α
 
-    no_finder = NoNeighborFinder(n_atoms);
+    no_finder = NoNeighborFinder();
     celllist = CellList3D(info, r_c, boundary, 1);
     interaction_long = SoEwald2DLongInteraction(ϵ_0, (L, L, L), s, α, n_atoms, k_c, SoePara(), rbm = true, rbm_p = 30);
     interaction_short = SoEwald2DShortInteraction(ϵ_0, (L, L, L), s, α, n_atoms, r_c);
@@ -31,7 +31,7 @@
         (interaction_short, celllist),
         (interaction_long, no_finder)
         ]
-    loggers = [TemperatureLogger(100, output = false), TrajectionLogger(step = 100, output = false)]
+    loggers = [TemperatureLogger(100, output = false), TrajectoryLogger(step = 100, output = false)]
     simulator = VerletProcess(dt = 0.001, thermostat = AndersenThermoStat(1.0, 0.05))
 
     sys = MDSys(

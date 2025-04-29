@@ -19,7 +19,7 @@ StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 [compat]
 Distributions = "0.25"
 Enzyme = "0.13"
-ExTinyMD = "0.2.1"
+ExTinyMD = "0.2"
 ForwardDiff = "0.10.36"
 GaussQuadrature = "0.5.8"
 SpecialFunctions = "2.3.1"
