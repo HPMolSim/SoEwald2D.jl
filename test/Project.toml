@@ -1,3 +1,9 @@
+# THIS is the test environment Julia reads. `Pkg.test()` honours
+# test/Project.toml whenever it exists and ignores the top-level
+# [extras]/[targets] pair completely, so every test-side dependency, [compat]
+# bound and [sources] override has to live here. (Before the decoupling this
+# package declared its test environment in both files; the top-level copy has
+# been deleted so there is only one place to edit.)
 [deps]
 Distributed = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
@@ -10,5 +16,35 @@ QuasiEwald = "983f8767-50b7-4083-a328-dfb7a9c26de7"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 SharedArrays = "1a1011a3-84de-559e-8e89-a11a2f7dc383"
 SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+# QuasiEwald 0.3 is not in the General registry yet -- its own decoupling
+# (Phase 3b) is open as HPMolSim/QuasiEwald.jl PR #5 -- so this environment
+# needs a git override to resolve at all. **Change this to rev = "main" once
+# PR #5 lands.**
+#
+# A git URL rather than a sibling path, deliberately: a
+# {path = "../QuasiEwald.jl"} pin resolves locally but cannot work in CI, where
+# only this repository is checked out and actions/checkout will not write
+# outside the workspace. Verified on ParticleMeshEwald: with a path pin,
+# `Pkg.test()` fails with `expected package ExTinyMD [fec76197] to exist at
+# path .../ExTinyMD.jl`.
+#
+# ExTinyMD needs no entry here: 0.3.0 is registered in General, so the
+# [compat] bound below resolves it from the registry. That the resolver has to
+# reconcile a registry ExTinyMD with a git-branch QuasiEwald that itself
+# depends on ExTinyMD 0.3 is verified by execution, not assumed.
+#
+# NOTE: General's automerge rejects any Project.toml containing [sources].
+# Removing this is gated on QuasiEwald 0.3 reaching the registry, and is
+# tracked for all five downstream packages together in
+# ExTinyMD.jl/docs/superpowers/specs/2026-09-15-downstream-decoupling-design.md §6b.
+[sources]
+QuasiEwald = {url = "https://github.com/HPMolSim/QuasiEwald.jl", rev = "decouple-extinymd"}
+
+[compat]
+ExTinyMD = "0.3"
+QuasiEwald = "0.3"
+StaticArrays = "1.6"

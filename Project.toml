@@ -1,38 +1,66 @@
 name = "SoEwald2D"
 uuid = "0daaa638-a47d-40d8-b855-b9e525a61752"
 authors = ["Xuanzhao Gao"]
-version = "0.1.5"
+version = "0.2.0"
 
 [deps]
 Distributed = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 Enzyme = "7da242da-08ed-463a-9acd-ee780be4f1d9"
-ExTinyMD = "fec76197-d59f-46dd-a0ed-76a83c21f7aa"
 ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
 GaussQuadrature = "d54b0c1a-921d-58e0-8e36-89d8069c0969"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 SharedArrays = "1a1011a3-84de-559e-8e89-a11a2f7dc383"
 SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 
+# ExTinyMD is a WEAK dependency only. src/ contains no reference to it in code;
+# the ExTinyMD.AbstractInteraction wrappers and the ExTinyMD.energy /
+# ExTinyMD.update_acceleration! methods all live in
+# ext/SoEwald2DExTinyMDExt.jl, which Julia loads automatically once a session
+# has done `using ExTinyMD` as well.
+[weakdeps]
+ExTinyMD = "fec76197-d59f-46dd-a0ed-76a83c21f7aa"
+
+[extensions]
+SoEwald2DExTinyMDExt = "ExTinyMD"
+
 [compat]
+Distributed = "1.11"
 Distributions = "0.25"
 Enzyme = "0.13"
-ExTinyMD = "0.2"
+ExTinyMD = "0.3"
 ForwardDiff = "0.10.36"
 GaussQuadrature = "0.5.8"
-SpecialFunctions = "2.3.1"
-StatsBase = "0.34"
 LinearAlgebra = "1.11"
 Random = "1.11"
-Distributed = "1.11"
 SharedArrays = "1.11"
+SpecialFunctions = "2.3.1"
+StaticArrays = "1.6"
+StatsBase = "0.34"
 julia = "1.11"
 
-[extras]
-Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
-QuasiEwald = "983f8767-50b7-4083-a328-dfb7a9c26de7"
-
-[targets]
-test = ["Test", "QuasiEwald"]
+# NO [sources] BLOCK HERE, deliberately. ExTinyMD 0.3.0 IS in the General
+# registry -- verified by resolving `PackageSpec(name = "ExTinyMD", version =
+# v"0.3")`, and the v0.3.0 tag is the PR #13 merge, so it really does carry the
+# Phase 1 + Phase 2 electrostatics stdlib and not the much older Project.toml
+# that has read "0.3.0" since 2023. The compat bound above is therefore all
+# that is needed, and this package resolves from the registry alone.
+#
+# The one override still needed -- QuasiEwald 0.3, whose own decoupling is
+# unmerged -- is test-only and lives in test/Project.toml, together with its
+# `QuasiEwald = "0.3"` compat bound: a compat entry here for a package listed
+# in neither [deps], [weakdeps] nor [extras] is rejected outright by Pkg
+# ("Compat `QuasiEwald` not listed in `deps`, `weakdeps` or `extras`
+# section"), so with the dead [extras] pair gone the test-only bound has
+# nowhere else to live.
+#
+# NO [extras]/[targets] PAIR HERE either. This package used to declare its test
+# environment TWICE -- once as [extras]/[targets] here and once as
+# test/Project.toml -- and Julia honours test/Project.toml whenever it is
+# present, ignoring [extras]/[targets] entirely. The duplicate was therefore
+# dead weight: a compat or [sources] edit made only here silently did nothing.
+# The single surviving declaration is test/Project.toml, because that is the
+# one Julia actually reads.

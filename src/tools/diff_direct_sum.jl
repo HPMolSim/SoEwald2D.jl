@@ -1,29 +1,35 @@
-function diff_direct_sum(interaction::SoEwald2DLongInteraction{T}, sys::MDSys{T}, info::SimulationInfo{T}) where{T<:Number}
+# Validation reference for the long-range FORCE. Despite the name, what this
+# returns is `-∇U` -- the same sign as `SoEwald2D.force` -- not the gradient:
+# the pre-decoupling test compared it directly against
+# `info.particle_info[i].acceleration` after `SoEwald2D_Fl!`, which is
+# `-∇U / mass` at unit mass. Same units convention as direct_sum.jl: no
+# 1 / (4π ϵ_0) prefactor.
+function diff_direct_sum(plan::SoEwald2DLongPlan{T}, poses, charges) where{T<:Number}
 
-    n_atoms = interaction.n_atoms
+    n_atoms = plan.n_atoms
     
-    sum = [Point(zero(T), zero(T), zero(T)) for _=1:n_atoms]
+    sum = [SVector{3, T}(zero(T), zero(T), zero(T)) for _=1:n_atoms]
 
-    revise_interaction!(interaction, sys, info)
-    diff_direct_sum_k0!(interaction.q, interaction.z, interaction, sum)
-    for K in interaction.k_set
-        diff_direct_sum_k!(K, interaction.q, interaction.x, interaction.y, interaction.z, interaction, sum)
+    _scatter_long!(plan, poses, charges)
+    diff_direct_sum_k0!(plan.q, plan.z, plan, sum)
+    for K in plan.k_set
+        diff_direct_sum_k!(K, plan.q, plan.x, plan.y, plan.z, plan, sum)
     end
     return - sum .* T(2)
 end
 
-function diff_direct_sum_k0!(q::Array{T}, z::Array{T}, para::SoEwald2DLongInteraction{T}, sum::Vector{Point{3, T}}) where {T<:Number}
+function diff_direct_sum_k0!(q::Array{T}, z::Array{T}, para::SoEwald2DLongPlan{T}, sum::Vector{SVector{3, T}}) where {T<:Number}
     α = para.α
     for i in 1:para.n_atoms
         for j in 1:para.n_atoms
             z_ij = z[i] - z[j]
-            sum[i] -= Point(zero(T), zero(T), q[i] * q[j] * (erf(α * z_ij))  / (4 *  para.L[1] * para.L[2]))
+            sum[i] -= SVector{3, T}(zero(T), zero(T), q[i] * q[j] * (erf(α * z_ij))  / (4 *  para.L[1] * para.L[2]))
         end
     end
     return nothing
 end
 
-function diff_direct_sum_k!(K::Tuple{T, T, T}, q::Array{T}, x::Array{T}, y::Array{T}, z::Array{T}, para::SoEwald2DLongInteraction{T},sum::Vector{Point{3, T}}) where{T<:Number}
+function diff_direct_sum_k!(K::Tuple{T, T, T}, q::Array{T}, x::Array{T}, y::Array{T}, z::Array{T}, para::SoEwald2DLongPlan{T},sum::Vector{SVector{3, T}}) where{T<:Number}
 
     n_atoms = para.n_atoms
 
@@ -48,7 +54,7 @@ function diff_direct_sum_k!(K::Tuple{T, T, T}, q::Array{T}, x::Array{T}, y::Arra
                 2α / sqrt(π) * exp(k * z_ij) * exp(-(k / (2α) + α * z_ij)^2) +
                 2α / sqrt(π) * exp(- k * z_ij) * exp(-(k / (2α) - α * z_ij)^2) ) / k
         end
-        sum[i] += Point(sum_x, sum_y, sum_z) / (8 * para.L[1] * para.L[2])
+        sum[i] += SVector{3, T}(sum_x, sum_y, sum_z) / (8 * para.L[1] * para.L[2])
     end
 
     return nothing

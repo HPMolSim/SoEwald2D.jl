@@ -167,13 +167,27 @@ function energy_sum!(q::Array{T}, x::Array{T}, y::Array{T}, z::Array{T}, n_atoms
     return nothing
 end
 
-# # the summation will be summed up first, and the a interface SoEwald2D_EL will be added
-function SoEwald2D_El(interaction::SoEwald2DLongInteraction{T}, sys::MDSys, info::SimulationInfo{T}) where{T<:Number}
-    
+"""
+    SoEwald2D.energy(plan::SoEwald2DLongPlan, poses, charges) -> T
+
+Long-range (reciprocal-space) energy from plain array-of-structs positions and
+charges. No ExTinyMD type is constructed and neither argument is mutated: the
+array-of-structs input is scattered into the plan's own structure-of-arrays
+scratch by [`_scatter_long!`](@ref), which is what the kernels below consume.
+
+`plan.rbm` selects random-batch sampling over k-vectors versus the full sum,
+and `plan.parallel` selects the `@distributed` reduction, exactly as the
+pre-decoupling `SoEwald2D_El(interaction, sys, info)` did.
+
+`energy` is deliberately **not exported** -- call it as
+`SoEwald2D.energy(...)`.
+"""
+function energy(plan::SoEwald2DLongPlan{T}, poses, charges) where{T<:Number}
+
     U = [zero(T)]
 
-    revise_interaction!(interaction, sys, info)
-    energy_sum!(interaction.q, interaction.x, interaction.y, interaction.z, interaction.n_atoms, interaction.ϵ_0, interaction.L, interaction.α, interaction.soepara, interaction.iterpara, interaction.k_set, interaction.rbm, interaction.rbm_p, interaction.P, interaction.prob, interaction.parallel, interaction.rng, U)
-    
+    _scatter_long!(plan, poses, charges)
+    energy_sum!(plan.q, plan.x, plan.y, plan.z, plan.n_atoms, plan.ϵ_0, plan.L, plan.α, plan.soepara, plan.iterpara, plan.k_set, plan.rbm, plan.rbm_p, plan.P, plan.prob, plan.parallel, plan.rng, U)
+
     return U[1]
 end

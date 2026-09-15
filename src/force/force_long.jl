@@ -1,5 +1,3 @@
-Base.real(x::Point) = Point(real.(x.coo))
-
 function energy_sum_k!(K::Tuple{T, T, T}, q::Array{T}, x::Array{T}, y::Array{T}, z::Array{T}, n_atoms::Int64, α::T, soepara::SoePara{ComplexF64}, iterpara::IterPara, U::Array{T}) where{T<:Number}
     U[1] = energy_sum_k(K, q, x, y, z, n_atoms, α, soepara, iterpara)
     return nothing
@@ -27,28 +25,32 @@ function force_sum_k0(q::Array{T}, z::Array{T}, n_atoms::Int64, α::T, soepara::
     return [adpara.Fx, adpara.Fy, adpara.Fz]
 end
 
-function force_sum(interaction::SoEwald2DLongInteraction{T}) where{T}
+# Returns the energy GRADIENT, not the force -- `[dU/dx, dU/dy, dU/dz]`, one
+# array per axis. `force!` below negates it. This is the sign the
+# pre-decoupling code carried too: `SoEwald2D_Fl!` did
+# `acceleration -= Point(Fx, Fy, Fz) / mass`.
+function force_sum(plan::SoEwald2DLongPlan{T}) where{T}
 
-    iterpara = interaction.iterpara
-    soepara = interaction.soepara
-    adpara = interaction.adpara
-    q = interaction.q
-    x = interaction.x
-    y = interaction.y
-    z = interaction.z
+    iterpara = plan.iterpara
+    soepara = plan.soepara
+    adpara = plan.adpara
+    q = plan.q
+    x = plan.x
+    y = plan.y
+    z = plan.z
 
-    rbm = interaction.rbm
-    rbm_p = interaction.rbm_p
-    P = interaction.P
-    prob = interaction.prob
+    rbm = plan.rbm
+    rbm_p = plan.rbm_p
+    P = plan.P
+    prob = plan.prob
 
-    α = interaction.α
-    n_atoms = interaction.n_atoms
-    L = interaction.L
-    k_set = interaction.k_set
-    ϵ_0 = interaction.ϵ_0
-    parallel = interaction.parallel
-    rng = interaction.rng
+    α = plan.α
+    n_atoms = plan.n_atoms
+    L = plan.L
+    k_set = plan.k_set
+    ϵ_0 = plan.ϵ_0
+    parallel = plan.parallel
+    rng = plan.rng
     
     update_iterpara_z!(iterpara, z)
 
@@ -73,7 +75,12 @@ function force_sum(interaction::SoEwald2DLongInteraction{T}) where{T}
             end
         else
             random_k = sample(rng, k_set, prob, rbm_p)
-            for i in indice
+            # `for i in indice` before the decoupling: `indice` is a *field* of
+            # the plan and was never bound as a local here, so this branch --
+            # rbm = true with parallel = false -- raised an unconditional
+            # UndefVarError. `1:rbm_p` is what the parallel branch three lines
+            # up uses and what `random_k` is indexed by.
+            for i in 1:rbm_p
                 F_k += P / rbm_p * force_sum_k(random_k[i], q, x, y, z, n_atoms, α, soepara, iterpara, adpara)
             end
         end
@@ -85,17 +92,45 @@ function force_sum(interaction::SoEwald2DLongInteraction{T}) where{T}
     return F_k / (4π * ϵ_0)
 end
 
-function SoEwald2D_Fl!(interaction::SoEwald2DLongInteraction{T}, sys::MDSys, info::SimulationInfo{T}) where{T<:Number}
+"""
+    SoEwald2D.force!(F, plan::SoEwald2DLongPlan, poses, charges) -> F
+    SoEwald2D.force(plan::SoEwald2DLongPlan, poses, charges) -> Vector{SVector{3,T}}
 
-    revise_interaction!(interaction, sys, info)
-    revise_adpara!(interaction.adpara, interaction.n_atoms)
-    
-    mass = interaction.mass
-    Fx, Fy, Fz = force_sum(interaction)
+Long-range (reciprocal-space) **force** from plain array-of-structs positions
+and charges, written into `F` (filled, not accumulated into). Neither `poses`
+nor `charges` is mutated -- the input is scattered into the plan's own
+structure-of-arrays scratch first.
 
-    for i in 1:sys.n_atoms
-        info.particle_info[i].acceleration -= Point(Fx[i], Fy[i], Fz[i]) / (mass[i])
+SIGN CONVENTION, AND IT IS A FLIP. [`force_sum`](@ref) returns the energy
+*gradient*, and the pre-decoupling `SoEwald2D_Fl!` consumed it as one:
+`acceleration -= Point(Fx[i], Fy[i], Fz[i]) / mass[i]`. This function returns
+the FORCE, `-∇U`, so that the ExTinyMD wrapper accumulates with `+=` like every
+other adapter in this family, and so that `force` means the same thing for both
+plans. A finite difference of [`SoEwald2D.energy`](@ref) is what pins it down;
+see test/plan.jl, which asserts the sign of every component rather than only
+its magnitude.
+
+No mass division is applied: a framework-free solver returns a force and leaves
+that to the caller.
+
+Not exported; call as `SoEwald2D.force!(...)`.
+"""
+function force!(F, plan::SoEwald2DLongPlan{T}, poses, charges) where{T<:Number}
+
+    _scatter_long!(plan, poses, charges)
+    revise_adpara!(plan.adpara, plan.n_atoms)
+
+    Fx, Fy, Fz = force_sum(plan)
+
+    @inbounds for i in 1:plan.n_atoms
+        F[i] = SVector{3, T}(-Fx[i], -Fy[i], -Fz[i])
     end
 
-    return nothing 
+    return F
+end
+
+"Allocating form of [`SoEwald2D.force!`](@ref)."
+function force(plan::SoEwald2DLongPlan{T}, poses, charges) where{T<:Number}
+    F = [SVector{3, T}(zero(T), zero(T), zero(T)) for _ in 1:plan.n_atoms]
+    return force!(F, plan, poses, charges)
 end

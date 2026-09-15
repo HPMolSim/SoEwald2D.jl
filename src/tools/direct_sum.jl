@@ -1,27 +1,35 @@
+# Validation references: the pair-by-pair direct sums the SOE solver is
+# checked against. Ported to the framework-free `(plan, poses, charges)`
+# signature so the accuracy tests do not have to build an MDSys.
+#
+# Note the units convention, which predates this phase and is preserved: these
+# sums do NOT carry the 1 / (4π ϵ_0) prefactor that `SoEwald2D.energy` applies,
+# so they agree with it only at ϵ_0 = 1 (and differ by exactly 1/ϵ_0
+# otherwise).
 # this function will calculate the direct sum
-function direct_sum(interaction::SoEwald2DLongInteraction{T}, sys::MDSys{T}, info::SimulationInfo{T}) where{T<:Number}
+function direct_sum(plan::SoEwald2DLongPlan{T}, poses, charges) where{T<:Number}
 
     energy = zero(T)
-    for i in 1:interaction.n_atoms
-        energy += direct_sum(i, interaction, sys, info)
+    for i in 1:plan.n_atoms
+        energy += direct_sum(i, plan, poses, charges)
     end
     return energy
 end
 
-function direct_sum(i::Int, interaction::SoEwald2DLongInteraction{T}, sys::MDSys{T}, info::SimulationInfo{T}) where{T<:Number}
+function direct_sum(i::Int, plan::SoEwald2DLongPlan{T}, poses, charges) where{T<:Number}
 
     energy = zero(T)
-    revise_interaction!(interaction, sys, info)
+    _scatter_long!(plan, poses, charges)
 
-    q = interaction.q
-    x = interaction.x
-    y = interaction.y
-    z = interaction.z
+    q = plan.q
+    x = plan.x
+    y = plan.y
+    z = plan.z
 
-    U_k0 = - direct_sum_k0i(i, q, z, interaction)
+    U_k0 = - direct_sum_k0i(i, q, z, plan)
 
-    for K in interaction.k_set
-        energy += direct_sum_ki(i, K, q, x, y, z, interaction)
+    for K in plan.k_set
+        energy += direct_sum_ki(i, K, q, x, y, z, plan)
     end
 
     energy += U_k0
@@ -29,7 +37,7 @@ function direct_sum(i::Int, interaction::SoEwald2DLongInteraction{T}, sys::MDSys
 end
 
 
-function direct_sum_ki(i::Int, K::Tuple{T, T, T}, q::Array{T}, x::Array{T}, y::Array{T}, z::Array{T}, para::SoEwald2DLongInteraction{T}) where{T<:Number}
+function direct_sum_ki(i::Int, K::Tuple{T, T, T}, q::Array{T}, x::Array{T}, y::Array{T}, z::Array{T}, para::SoEwald2DLongPlan{T}) where{T<:Number}
     k_x, k_y, k = K
     α = para.α
     sum_ki = zero(T)
@@ -43,7 +51,7 @@ function direct_sum_ki(i::Int, K::Tuple{T, T, T}, q::Array{T}, x::Array{T}, y::A
 end
 
 
-function direct_sum_k0i(i::Int, q::Array{T}, z::Array{T}, para::SoEwald2DLongInteraction{T}) where{T<:Number}
+function direct_sum_k0i(i::Int, q::Array{T}, z::Array{T}, para::SoEwald2DLongPlan{T}) where{T<:Number}
     α = para.α
     sum_k0i = zero(T)
     for j in 1:para.n_atoms
@@ -53,36 +61,36 @@ function direct_sum_k0i(i::Int, q::Array{T}, z::Array{T}, para::SoEwald2DLongInt
     return sum_k0i
 end
 
-function soe_direct_sum(interaction::SoEwald2DLongInteraction{T}, sys::MDSys{T}, info::SimulationInfo{T}, soepara::SoePara{ComplexF64}) where{T<:Number}
+function soe_direct_sum(plan::SoEwald2DLongPlan{T}, poses, charges, soepara::SoePara{ComplexF64}) where{T<:Number}
 
     energy = zero(T)
-    for i in 1:interaction.n_atoms
-        energy += soe_direct_sum(i, interaction, sys, info, soepara)
+    for i in 1:plan.n_atoms
+        energy += soe_direct_sum(i, plan, poses, charges, soepara)
     end
     return energy
 end
 
-function soe_direct_sum(i::Int, interaction::SoEwald2DLongInteraction{T}, sys::MDSys{T}, info::SimulationInfo{T}, soepara::SoePara{ComplexF64}) where{T<:Number}
+function soe_direct_sum(i::Int, plan::SoEwald2DLongPlan{T}, poses, charges, soepara::SoePara{ComplexF64}) where{T<:Number}
 
     energy = zero(T)
-    revise_interaction!(interaction, sys, info)
+    _scatter_long!(plan, poses, charges)
 
-    q = interaction.q
-    x = interaction.x
-    y = interaction.y
-    z = interaction.z
+    q = plan.q
+    x = plan.x
+    y = plan.y
+    z = plan.z
 
-    U_k0 = - soe_direct_sum_k0i(i, q, z, interaction, soepara)
+    U_k0 = - soe_direct_sum_k0i(i, q, z, plan, soepara)
 
-    for K in interaction.k_set
-        energy += soe_direct_sum_ki(i, K, q, x, y, z, interaction, soepara)
+    for K in plan.k_set
+        energy += soe_direct_sum_ki(i, K, q, x, y, z, plan, soepara)
     end
 
     energy += U_k0
     return energy
 end
 
-function soe_direct_sum_ki(i::Int, K::Tuple{T, T, T}, q::Array{T}, x::Array{T}, y::Array{T}, z::Array{T}, para::SoEwald2DLongInteraction{T}, soepara::SoePara{ComplexF64}) where{T<:Number}
+function soe_direct_sum_ki(i::Int, K::Tuple{T, T, T}, q::Array{T}, x::Array{T}, y::Array{T}, z::Array{T}, para::SoEwald2DLongPlan{T}, soepara::SoePara{ComplexF64}) where{T<:Number}
     k_x, k_y, k = K
     α = para.α
     sum_ki = zero(ComplexF64)
@@ -96,7 +104,7 @@ function soe_direct_sum_ki(i::Int, K::Tuple{T, T, T}, q::Array{T}, x::Array{T}, 
     return sum_ki
 end
 
-function soe_direct_sum_k0i(i::Int, q::Array{T}, z::Array{T}, para::SoEwald2DLongInteraction{T}, soepara::SoePara{ComplexF64}) where{T<:Number}
+function soe_direct_sum_k0i(i::Int, q::Array{T}, z::Array{T}, para::SoEwald2DLongPlan{T}, soepara::SoePara{ComplexF64}) where{T<:Number}
     α = para.α
     sum_k0i = zero(ComplexF64)
     for j in 1:para.n_atoms
