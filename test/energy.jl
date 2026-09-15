@@ -20,7 +20,7 @@
     r_c = s / α       # r_c = 10.0 < min(Lx, Ly) / 2 = 50.0
     k_c = 2 * s * α
 
-    para = SoEwald2DLongInteraction(ϵ_0, (L, L, L), s, α, n_atoms, k_c, SoePara());
+    plan = SoEwald2DLongPlan(ϵ_0, (L, L, L), s, α, n_atoms, k_c, SoePara());
 
     interactions = [(LennardJones(), CellListDir3D(info, 4.5, boundary, 100))]
     loggers = [TemperatureLogger(100, output = false)]
@@ -35,9 +35,14 @@
         simulator = simulator
     )
 
-    U_soe = SoEwald2D_El(para, sys, info)
-    U_dir = direct_sum(para, sys, info)
-    U_soe_dir = soe_direct_sum(para, sys, info, para.soepara)
+    # The framework-free query: array-of-structs positions and charges,
+    # gathered here in slot order the same way the ExTinyMD wrapper does.
+    poses = [SVector(p_info.position[1], p_info.position[2], p_info.position[3]) for p_info in info.particle_info]
+    charges = [atoms[p_info.id].charge for p_info in info.particle_info]
+
+    U_soe = SoEwald2D.energy(plan, poses, charges)
+    U_dir = direct_sum(plan, poses, charges)
+    U_soe_dir = soe_direct_sum(plan, poses, charges, plan.soepara)
 
     @test U_soe ≈ U_dir
     @test isapprox(U_dir, U_soe_dir, atol = 1e-12)

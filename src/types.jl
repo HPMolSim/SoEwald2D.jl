@@ -139,7 +139,92 @@ function revise_adpara!(adpara::AdPara{T}, n_atoms::TI) where{T<:Number, TI<:Int
     return nothing
 end
 
-struct SoEwald2DLongInteraction{T} <: ExTinyMD.AbstractInteraction
+# ============================================================================
+# Framework-free plans.
+#
+# `SoEwald2DShortInteraction`/`SoEwald2DLongInteraction` used to be
+# `ExTinyMD.AbstractInteraction` structs holding both the method's parameters
+# and the MD side's gathered state. The plans below are the framework-free
+# replacement: the same physics, constructed and queried from plain arrays via
+# `SoEwald2D.energy`/`force`/`force!` (defined alongside the rest of the
+# energy/force machinery in energy/energy_short.jl, energy/energy_long.jl,
+# force/force_short.jl, force/force_long.jl).
+#
+# `mass` and `acceleration` are gone from the long plan. A framework-free
+# solver returns a FORCE and leaves mass-division to the caller, exactly as
+# ExTinyMD's own electrostatics adapter does; the ExTinyMD wrapper's
+# `update_acceleration!` does that division. Verified bitwise, not assumed:
+# the old `SoEwald2D_Fl!` did `acceleration -= Point(Fx[i], Fy[i], Fz[i]) /
+# mass[i]`, ExTinyMD's `Point` `/` and `-` are both plain componentwise
+# operations (`Point(y.coo ./ x)`, `Point(x.coo .- y.coo)`), and IEEE-754 makes
+# `a - (f/m)` and `a + ((-f)/m)` the same double for every input -- negation is
+# exact and division is correctly rounded, so `(-f)/m == -(f/m)` bit for bit.
+# The force buffer therefore stores `-Fx[i]` and the wrapper adds `f/m`, with
+# no change to any computed value.
+# ============================================================================
+
+"""
+    SoEwald2DShortPlan(ϵ_0, L, s, α, n_atoms, r_c)
+
+Framework-free short-range (real-space) plan for the SOE Ewald2D method: pure
+parameters, no ExTinyMD dependency, nothing MD-specific. Query with
+[`SoEwald2D.energy`](@ref), [`SoEwald2D.force`](@ref) or
+[`SoEwald2D.force!`](@ref) against plain array-of-structs positions
+(`Vector{SVector{3,T}}` canonical, but anything supporting `p[1]`/`p[2]`/`p[3]`
+indexing works, including `NTuple{3,T}` and ExTinyMD's `Point{3,T}`) and a
+plain charge vector.
+
+`r_c` must satisfy `r_c < min(Lx, Ly) / 2`; anything else throws an
+`ArgumentError` (the short-range sum uses the single nearest in-plane periodic
+image, which is only the whole story below half the box).
+"""
+struct SoEwald2DShortPlan{T}
+    ϵ_0::T
+    L::NTuple{3, T}
+    s::T
+    α::T
+    n_atoms::Int64
+
+    r_c::T
+end
+
+function SoEwald2DShortPlan(ϵ_0::T, L::NTuple{3, T}, s::T, α::T, n_atoms::Int64, r_c::T) where{T<:Number}
+    # `_min_image_slab` returns the single nearest in-plane image, which is the
+    # only image inside the cutoff exactly when `r_c < min(Lx, Ly) / 2`. At or
+    # beyond half the box a second image is also within `r_c` and the
+    # short-range sum silently omits it: no exception, no warning, just a wrong
+    # number. This is the only place that can catch it for a standalone
+    # caller, since nothing else in this package ever looks at the unit cell.
+    if !(r_c < min(L[1], L[2]) / 2)
+        throw(ArgumentError(
+            "SoEwald2DShortPlan requires r_c < min(Lx, Ly) / 2, but got " *
+            "r_c = $r_c with (Lx, Ly) = ($(L[1]), $(L[2])), i.e. " *
+            "min(Lx, Ly) / 2 = $(min(L[1], L[2]) / 2). The real-space sum uses " *
+            "the single nearest in-plane periodic image, which is only the whole " *
+            "story below half the box; at or above it a second image is also " *
+            "inside the cutoff and is silently dropped. Reduce r_c (equivalently " *
+            "reduce s = α·r_c), or enlarge Lx/Ly."))
+    end
+    return SoEwald2DShortPlan{T}(ϵ_0, L, s, α, n_atoms, r_c)
+end
+
+"""
+    SoEwald2DLongPlan(ϵ_0, L, s, α, n_atoms, k_c, soepara; rbm = false, rbm_p = 0, parallel = true, rng = MersenneTwister(123))
+
+Framework-free long-range (reciprocal-space) plan for the SOE Ewald2D method.
+Same parameters as the old `SoEwald2DLongInteraction`, minus `mass` and
+`acceleration`: [`SoEwald2D.force!`](@ref) returns a force, not an
+acceleration, so this plan carries no notion of mass at all.
+
+The kernels below `energy_sum!`/`force_sum` are structure-of-arrays, so the
+plan owns `q`, `x`, `y`, `z` as scratch and every query scatters the caller's
+array-of-structs `poses`/`charges` into them (see `_scatter_long!`). The
+caller's arrays are never written to.
+
+Query with [`SoEwald2D.energy`](@ref)/[`SoEwald2D.force`](@ref)/
+[`SoEwald2D.force!`](@ref).
+"""
+struct SoEwald2DLongPlan{T}
     ϵ_0::T
     L::NTuple{3, T}
     s::T
@@ -155,12 +240,12 @@ struct SoEwald2DLongInteraction{T} <: ExTinyMD.AbstractInteraction
     prob::ProbabilityWeights{T}
     indice::Vector{Int}
 
+    # Plan-owned structure-of-arrays scratch, refilled from the caller's AoS
+    # arrays by `_scatter_long!` at the start of every query.
     q::Vector{T}
-    mass::Vector{T}
     x::Vector{T}
     y::Vector{T}
     z::Vector{T}
-    acceleration::Vector{SVector{3, T}}
     iterpara::IterPara
     adpara::AdPara
 
@@ -168,7 +253,7 @@ struct SoEwald2DLongInteraction{T} <: ExTinyMD.AbstractInteraction
     rng
 end
 
-function SoEwald2DLongInteraction(ϵ_0::T, L::NTuple{3, T}, s::T, α::T, n_atoms::Int64, k_c::T, soepara::SoePara{ComplexF64}; rbm::Bool = false, rbm_p::Int=0, parallel::Bool = true, rng = MersenneTwister(123)) where{T<:Number}
+function SoEwald2DLongPlan(ϵ_0::T, L::NTuple{3, T}, s::T, α::T, n_atoms::Int64, k_c::T, soepara::SoePara{ComplexF64}; rbm::Bool = false, rbm_p::Int=0, parallel::Bool = true, rng = MersenneTwister(123)) where{T<:Number}
 
     k_set = Vector{Tuple{T, T, T}}()
     if rbm == false
@@ -193,45 +278,77 @@ function SoEwald2DLongInteraction(ϵ_0::T, L::NTuple{3, T}, s::T, α::T, n_atoms
     indice = zeros(Int, rbm_p)
 
     q = zeros(T, n_atoms)
-    mass = zeros(T, n_atoms)
     x = zeros(T, n_atoms)
     y = zeros(T, n_atoms)
     z = zeros(T, n_atoms)
-    acceleration = Vector{SVector{3, T}}(undef, n_atoms)
 
     iterpara = IterPara(n_atoms)
     adpara = AdPara(n_atoms)
 
-    return SoEwald2DLongInteraction(ϵ_0, L, s, α, n_atoms, k_c, k_set, soepara, rbm, rbm_p, P, prob, indice, q, mass, x, y, z, acceleration, iterpara, adpara, parallel, rng)
+    return SoEwald2DLongPlan(ϵ_0, L, s, α, n_atoms, k_c, k_set, soepara, rbm, rbm_p, P, prob, indice, q, x, y, z, iterpara, adpara, parallel, rng)
 end
 
-struct SoEwald2DShortInteraction{T} <: ExTinyMD.AbstractInteraction
-    ϵ_0::T
-    L::NTuple{3, T}
-    s::T
-    α::T
-    n_atoms::Int64
+"""
+    _scatter_long!(plan, poses, charges) -> nothing
 
-    r_c::T
-end
+Fill the long plan's structure-of-arrays scratch from array-of-structs
+`poses`/`charges`. This is the framework-free replacement for the old
+`revise_interaction!(interaction, sys, ExTinyMD.SimulationInfo)`, which read
+the same values out of `sys.atoms`/`info.particle_info` instead. Neither
+argument is mutated -- `poses` and `charges` are read only, and everything
+written lives on the plan.
 
-function SoEwald2DShortInteraction(ϵ_0::T, L::NTuple{3, T}, s::T, α::T, n_atoms::Int64, r_c::T) where{T<:Number}
-    return SoEwald2DShortInteraction{T}(ϵ_0, L, s, α, n_atoms, r_c)
-end
-
-function revise_interaction!(interaction::SoEwald2DLongInteraction{T}, sys::MDSys{T}, info::SimulationInfo{T}) where{T<:Number}
-
-    for i in 1:length(interaction.q)
-        interaction.q[i] = sys.atoms[info.particle_info[i].id].charge
-        interaction.mass[i] = sys.atoms[info.particle_info[i].id].mass
-        interaction.x[i], interaction.y[i], interaction.z[i] = info.particle_info[i].position
+`poses[i]` need only support `p[1]`/`p[2]`/`p[3]` indexing.
+"""
+function _scatter_long!(plan::SoEwald2DLongPlan{T}, poses, charges) where{T}
+    @inbounds for i in 1:plan.n_atoms
+        plan.q[i] = charges[i]
+        p = poses[i]
+        plan.x[i] = p[1]
+        plan.y[i] = p[2]
+        plan.z[i] = p[3]
     end
-
     return nothing
 end
 
-function SoEwald2D_init(ϵ_0::T, L::NTuple{3, T}, s::T, α::T, soepara::SoePara{ComplexF64}; rbm::Bool = false, rbm_p::Int=0, parallel::Bool = true) where{T <: Number}
-    r_c = s / α
-    k_c = 2 * s * α
-    return SoEwald2DShortInteraction(ϵ_0, L, s, α, n_atoms, r_c), SoEwald2DLongInteraction(ϵ_0, L, s, α, n_atoms, k_c, soepara; rbm = rbm, rbm_p = rbm_p, parallel = parallel)
+# ============================================================================
+# ExTinyMD interaction wrappers.
+#
+# These are the only ExTinyMD-coupled types left, and they carry no physics:
+# a plan plus the MD-side scratch (gathered positions/charges, a force buffer)
+# that a plan has no business owning. They move to
+# ext/SoEwald2DExTinyMDExt.jl in the next step, since a struct's supertype is
+# fixed where the struct is defined and `src/` will not have ExTinyMD at all.
+# ============================================================================
+
+struct SoEwald2DShortInteraction{T} <: ExTinyMD.AbstractInteraction
+    plan::SoEwald2DShortPlan{T}
+    pos_scratch::Vector{SVector{3, T}}
+    charge_scratch::Vector{T}
+    force_buffer::Vector{SVector{3, T}}
 end
+
+function SoEwald2DShortInteraction(plan::SoEwald2DShortPlan{T}) where{T}
+    n = plan.n_atoms
+    return SoEwald2DShortInteraction{T}(plan, Vector{SVector{3, T}}(undef, n),
+                                        Vector{T}(undef, n), Vector{SVector{3, T}}(undef, n))
+end
+
+SoEwald2DShortInteraction(ϵ_0::T, L::NTuple{3, T}, s::T, α::T, n_atoms::Int64, r_c::T) where{T<:Number} =
+    SoEwald2DShortInteraction(SoEwald2DShortPlan(ϵ_0, L, s, α, n_atoms, r_c))
+
+struct SoEwald2DLongInteraction{T} <: ExTinyMD.AbstractInteraction
+    plan::SoEwald2DLongPlan{T}
+    pos_scratch::Vector{SVector{3, T}}
+    charge_scratch::Vector{T}
+    force_buffer::Vector{SVector{3, T}}
+end
+
+function SoEwald2DLongInteraction(plan::SoEwald2DLongPlan{T}) where{T}
+    n = plan.n_atoms
+    return SoEwald2DLongInteraction{T}(plan, Vector{SVector{3, T}}(undef, n),
+                                       Vector{T}(undef, n), Vector{SVector{3, T}}(undef, n))
+end
+
+SoEwald2DLongInteraction(ϵ_0::T, L::NTuple{3, T}, s::T, α::T, n_atoms::Int64, k_c::T, soepara::SoePara{ComplexF64}; kwargs...) where{T<:Number} =
+    SoEwald2DLongInteraction(SoEwald2DLongPlan(ϵ_0, L, s, α, n_atoms, k_c, soepara; kwargs...))

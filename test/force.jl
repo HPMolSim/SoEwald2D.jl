@@ -33,15 +33,23 @@
     r_c = s / α       # r_c = 10.0 < min(Lx, Ly) / 2 = 50.0
     k_c = 2 * s * α
 
-    interaction = SoEwald2DLongInteraction(ϵ_0, (L, L, L), s, α, n_atoms, k_c, SoePara());
+    plan = SoEwald2DLongPlan(ϵ_0, (L, L, L), s, α, n_atoms, k_c, SoePara());
 
-    SoEwald2D_Fl!(interaction, sys, info)
-    sum_direct = diff_direct_sum(interaction, sys, info)
+    poses = [SVector(p_info.position[1], p_info.position[2], p_info.position[3]) for p_info in info.particle_info]
+    charges = [atoms[p_info.id].charge for p_info in info.particle_info]
+
+    # `diff_direct_sum` returns -grad U, the same sign as `SoEwald2D.force`.
+    # Before the decoupling this comparison went through
+    # `info.particle_info[i].acceleration` after `SoEwald2D_Fl!`, which was
+    # -grad U / mass at the unit masses used here -- so the quantity being
+    # compared is unchanged, only the route to it is.
+    F = SoEwald2D.force(plan, poses, charges)
+    sum_direct = diff_direct_sum(plan, poses, charges)
 
     for i in 1:n_atoms
-        @test sum_direct[i][1] ≈ info.particle_info[i].acceleration[1]
-        @test sum_direct[i][2] ≈ info.particle_info[i].acceleration[2]
-        @test sum_direct[i][3] ≈ info.particle_info[i].acceleration[3]
+        @test sum_direct[i][1] ≈ F[i][1]
+        @test sum_direct[i][2] ≈ F[i][2]
+        @test sum_direct[i][3] ≈ F[i][3]
     end
 end
 

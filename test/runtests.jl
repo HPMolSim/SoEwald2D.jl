@@ -1,4 +1,4 @@
-using SpecialFunctions, ExTinyMD, QuasiEwald, Distributed
+using SpecialFunctions, ExTinyMD, QuasiEwald, Distributed, StaticArrays, Random
 using Test
 @everywhere using SoEwald2D
 
@@ -7,4 +7,5 @@ using Test
     include("energy.jl")
     include("force.jl")
     include("simulate.jl")
+    include("plan.jl")
 end
