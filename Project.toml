@@ -1,7 +1,7 @@
 name = "SoEwald2D"
 uuid = "0daaa638-a47d-40d8-b855-b9e525a61752"
 authors = ["Xuanzhao Gao"]
-version = "0.1.5"
+version = "0.2.0"
 
 [deps]
 Distributed = "8ba89e20-285c-5b6f-9357-94700520ee1b"
@@ -14,25 +14,46 @@ LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 SharedArrays = "1a1011a3-84de-559e-8e89-a11a2f7dc383"
 SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 
 [compat]
+Distributed = "1.11"
 Distributions = "0.25"
 Enzyme = "0.13"
-ExTinyMD = "0.2"
+ExTinyMD = "0.3"
 ForwardDiff = "0.10.36"
 GaussQuadrature = "0.5.8"
-SpecialFunctions = "2.3.1"
-StatsBase = "0.34"
 LinearAlgebra = "1.11"
 Random = "1.11"
-Distributed = "1.11"
 SharedArrays = "1.11"
+SpecialFunctions = "2.3.1"
+StaticArrays = "1.6"
+StatsBase = "0.34"
 julia = "1.11"
 
-[extras]
-Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
-QuasiEwald = "983f8767-50b7-4083-a328-dfb7a9c26de7"
-
-[targets]
-test = ["Test", "QuasiEwald"]
+# There is deliberately no [sources] block here: ExTinyMD 0.3.0 IS in the
+# General registry (verified by resolving `PackageSpec(name = "ExTinyMD",
+# version = v"0.3")`; the v0.3.0 tag is the PR #13 merge, so it really does
+# carry the Phase 1 + Phase 2 electrostatics stdlib and not the much older
+# Project.toml that has read "0.3.0" since 2023), so the [compat] bound above
+# is all that is needed. The one override this package still needs -- for
+# QuasiEwald 0.3, whose own decoupling is unmerged -- is test-only and lives
+# in test/Project.toml, together with its `QuasiEwald = "0.3"` [compat] bound:
+# a [compat] entry here for a package listed in neither [deps], [weakdeps] nor
+# [extras] is rejected outright by Pkg ("Compat `QuasiEwald` not listed in
+# `deps`, `weakdeps` or `extras` section"), so with the dead [extras] pair gone
+# the test-only bound has nowhere else to live.
+#
+# There is also deliberately no [extras]/[targets] pair. This package used to
+# declare its test environment TWICE -- once as [extras]/[targets] here and
+# once as test/Project.toml -- and Julia honours test/Project.toml whenever it
+# is present, ignoring [extras]/[targets] entirely. The duplicate was therefore
+# dead: a [compat] or [sources] edit made only here silently did nothing. The
+# single surviving declaration is test/Project.toml, because that is the one
+# Julia actually reads.
+#
+# ExTinyMD is still a hard [deps] entry at this commit. It becomes a
+# [weakdeps]/[extensions] pair in the same change that moves the last
+# ExTinyMD-coupled code out of src/ and into ext/SoEwald2DExTinyMDExt.jl --
+# moving it early would only make the package unloadable in between.

@@ -17,7 +17,7 @@
     ϵ_0 = 1.0
     α = 0.1
     s = 1.0
-    r_c = s / α
+    r_c = s / α       # r_c = 10.0 < min(Lx, Ly) / 2 = 50.0
     k_c = 2 * s * α
 
     para = SoEwald2DLongInteraction(ϵ_0, (L, L, L), s, α, n_atoms, k_c, SoePara());
@@ -75,7 +75,7 @@ end
     ϵ_0 = 1.0 / 3.5
     α = 0.1
     s = 3.0
-    r_c = s / α
+    r_c = s / α       # r_c = 30.0 < min(Lx, Ly) / 2 = 50.0
     k_c = 2 * s * α
 
     no_finder = NoNeighborFinder();

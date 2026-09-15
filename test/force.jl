@@ -30,7 +30,7 @@
     ϵ_0 = 1.0
     s = 1.0
     α = 0.1
-    r_c = s / α
+    r_c = s / α       # r_c = 10.0 < min(Lx, Ly) / 2 = 50.0
     k_c = 2 * s * α
 
     interaction = SoEwald2DLongInteraction(ϵ_0, (L, L, L), s, α, n_atoms, k_c, SoePara());
@@ -77,7 +77,7 @@ end
     ϵ_0 = 1.0 / 3.5
     α = 0.1
     s = 3.0
-    r_c = s / α
+    r_c = s / α       # r_c = 30.0 < min(Lx, Ly) / 2 = 50.0
     k_c = 2 * s * α
 
     no_finder = NoNeighborFinder();
@@ -98,7 +98,13 @@ end
     force_icm = IcmForce(ICM_sys, coords, charge, ref_pos, ref_charge) ./ ϵ_0
 
     for i in 1:n_atoms
-        error_i = sqrt(dist2(force_icm[i], info.particle_info[i].acceleration))
+        # QuasiEwald 0.3 (decoupled) returns SVector{3} from IcmForce, while
+        # `acceleration` is an ExTinyMD `Point`, so `dist2` no longer has a
+        # method for the pair. Index both instead -- the one interface the two
+        # types share.
+        acc = info.particle_info[i].acceleration
+        f = force_icm[i]
+        error_i = sqrt((f[1] - acc[1])^2 + (f[2] - acc[2])^2 + (f[3] - acc[3])^2)
         @test error_i < 1e-3
     end
 end
@@ -131,7 +137,7 @@ end
     ϵ_0 = 1.0 / 3.5
     α = 0.1
     s = 3.0
-    r_c = s / α
+    r_c = s / α       # r_c = 30.0 < min(Lx, Ly) / 2 = 50.0
     k_c = 2 * s * α
 
     no_finder = NoNeighborFinder();
@@ -152,7 +158,13 @@ end
     force_icm = IcmForce(ICM_sys, coords, charge, ref_pos, ref_charge) ./ ϵ_0
 
     for i in 1:n_atoms
-        error_i = sqrt(dist2(force_icm[i], info.particle_info[i].acceleration))
+        # QuasiEwald 0.3 (decoupled) returns SVector{3} from IcmForce, while
+        # `acceleration` is an ExTinyMD `Point`, so `dist2` no longer has a
+        # method for the pair. Index both instead -- the one interface the two
+        # types share.
+        acc = info.particle_info[i].acceleration
+        f = force_icm[i]
+        error_i = sqrt((f[1] - acc[1])^2 + (f[2] - acc[2])^2 + (f[3] - acc[3])^2)
         @test error_i < 1e-3
     end
 end
