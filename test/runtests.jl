@@ -8,4 +8,5 @@ using Test
     include("force.jl")
     include("simulate.jl")
     include("plan.jl")
+    include("adapter.jl")
 end
