@@ -1,5 +1,3 @@
-Base.real(x::Point) = Point(real.(x.coo))
-
 function energy_sum_k!(K::Tuple{T, T, T}, q::Array{T}, x::Array{T}, y::Array{T}, z::Array{T}, n_atoms::Int64, α::T, soepara::SoePara{ComplexF64}, iterpara::IterPara, U::Array{T}) where{T<:Number}
     U[1] = energy_sum_k(K, q, x, y, z, n_atoms, α, soepara, iterpara)
     return nothing

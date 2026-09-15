@@ -15,8 +15,8 @@ function SoEwald2D_Es(interaction::SoEwald2DShortInteraction{T}, neighbor::CellL
     for (i, j, ρ) in neighbor_list
         id_i = info.particle_info[i].id
         id_j = info.particle_info[j].id
-        coord_1, coord_2, r_sq = position_check3D(info.particle_info[i].position, info.particle_info[j].position, sys.boundary, interaction.r_c)
-        if iszero(r_sq)
+        coord_1, coord_2, r_sq = _min_image_slab(info.particle_info[i].position, info.particle_info[j].position, interaction.L)
+        if r_sq ≥ interaction.r_c^2 || iszero(r_sq)
             nothing
         else
             q_1 = atoms[id_i].charge
